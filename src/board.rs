@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
 use core::fmt;
-use std::ops::Index;
+use std::{ops::Index, vec};
 
 use crate::lookup;
 
@@ -184,6 +184,22 @@ impl From<std::num::ParseIntError> for BoardError {
     }
 }
 
+fn get_low_mask(x: u64) {
+    if x > 0 {
+        (1 << x.trailing_zeros()) - 1
+    } else {
+        0
+    }
+}
+
+fn get_high_mask(x: u64) {
+    if x > 0 {
+        !1 << x.trailing_zeros()
+    } else {
+        0
+    }
+}
+
 impl Board {
     pub fn new() -> Board {
         Board {
@@ -301,6 +317,12 @@ impl Board {
             self.black
         };
 
+        let enemy_mask = if color == PlayerColor::White {
+            self.black
+        } else {
+            self.white
+        };
+
         let mut moves = Vec::new();
 
         //knight moves
@@ -322,6 +344,8 @@ impl Board {
                 moves.push(ChessMove { origin, target });
             }
         }
+
+        //king moves
 
         let mut pieces = self.king.0 & player_mask.0;
         while pieces > 0 {
