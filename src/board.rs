@@ -529,10 +529,37 @@ impl Board {
         }
     }
 
-    pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
-        let occupied = self.white.0 | self.black.0;
-        let empty = !occupied;
+    fn get_pawn_moves(
+        &self,
+        moves: &mut Vec<ChessMove>,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+        color: PlayerColor,
+    ) {
+        let mut pieces = player_mask.0 & self.pawn.0;
+        while pieces > 0 {
+            let shift = pieces.trailing_zeros() as u8;
+            let occupied = player_mask.0 | enemy_mask.0;
+            let origin = Square::from_id(shift).unwrap();
 
+            //will break if on final rank
+            let target = Square::from_id(shift - 8).unwrap();
+
+            if color == PlayerColor::White {
+                if ((1 << shift) >> 8) & !occupied > 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+            } else {
+                if ((1 << shift) << 8) & !occupied > 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+
+            pieces ^= 1 << shift;
+        }
+    }
+
+    pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
         let player_mask = if color == PlayerColor::White {
             self.white
         } else {
@@ -552,6 +579,7 @@ impl Board {
         self.get_rook_moves(&mut moves, player_mask, enemy_mask);
         self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
         self.get_queen_moves(&mut moves, player_mask, enemy_mask);
+        self.get_pawn_moves(&mut moves, player_mask, enemy_mask, color);
 
         moves
     }
