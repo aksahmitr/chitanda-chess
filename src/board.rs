@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
 use core::fmt;
-use std::{ops::Index, vec};
+use std::ops::Index;
 
 use crate::lookup;
 
@@ -309,27 +309,14 @@ impl Board {
         Ok(board)
     }
 
-    pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
-        let occupied = self.white.0 | self.black.0;
-        let empty = !occupied;
-
-        let player_mask = if color == PlayerColor::White {
-            self.white
-        } else {
-            self.black
-        };
-
-        let enemy_mask = if color == PlayerColor::White {
-            self.black
-        } else {
-            self.white
-        };
-
-        let mut moves = Vec::new();
-
-        //knight moves
-
+    fn get_knight_moves(
+        &self,
+        moves: &mut Vec<ChessMove>,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+    ) {
         let mut pieces = self.knight.0 & player_mask.0;
+        let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
@@ -346,10 +333,16 @@ impl Board {
                 moves.push(ChessMove { origin, target });
             }
         }
+    }
 
-        //king moves
-
+    fn get_king_moves(
+        &self,
+        moves: &mut Vec<ChessMove>,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+    ) {
         let mut pieces = self.king.0 & player_mask.0;
+        let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
@@ -366,11 +359,18 @@ impl Board {
                 moves.push(ChessMove { origin, target });
             }
         }
+    }
 
-        //rook moves
+    fn get_rook_moves(
+        &self,
+        moves: &mut Vec<ChessMove>,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+    ) {
         let mut pieces = self.rook.0 & player_mask.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
+            let occupied = player_mask.0 | enemy_mask.0;
             pieces ^= 1 << shift;
 
             for id in [0, 2] {
@@ -415,6 +415,143 @@ impl Board {
                 }
             }
         }
+    }
+
+    fn get_bishop_moves(
+        &self,
+        moves: &mut Vec<ChessMove>,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+    ) {
+        let mut pieces = self.bishop.0 & player_mask.0;
+        while pieces > 0 {
+            let shift = pieces.trailing_zeros() as u8;
+            let occupied = player_mask.0 | enemy_mask.0;
+            pieces ^= 1 << shift;
+
+            for id in [1, 3] {
+                let origin = Square::from_id(shift).unwrap();
+
+                let blockers = lookup::RAY_MOVES[id][origin] & occupied;
+
+                let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
+
+                if blockers > 0 {
+                    mask |= (1 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                }
+
+                while mask > 0 {
+                    let shift = mask.trailing_zeros() as u8;
+                    mask ^= 1 << shift;
+
+                    let target = Square::from_id(shift).unwrap();
+
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+
+            for id in [5, 7] {
+                let origin = Square::from_id(shift).unwrap();
+
+                let blockers = lookup::RAY_MOVES[id][origin] & occupied;
+
+                let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
+
+                if blockers > 0 {
+                    mask |= (1 << blockers.trailing_zeros()) & enemy_mask.0;
+                }
+
+                while mask > 0 {
+                    let shift = mask.trailing_zeros() as u8;
+                    mask ^= 1 << shift;
+
+                    let target = Square::from_id(shift).unwrap();
+
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+        }
+    }
+
+    fn get_queen_moves(
+        &self,
+        moves: &mut Vec<ChessMove>,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+    ) {
+        let mut pieces = self.queen.0 & player_mask.0;
+        while pieces > 0 {
+            let shift = pieces.trailing_zeros() as u8;
+            let occupied = player_mask.0 | enemy_mask.0;
+            pieces ^= 1 << shift;
+
+            for id in 0..4 {
+                let origin = Square::from_id(shift).unwrap();
+
+                let blockers = lookup::RAY_MOVES[id][origin] & occupied;
+
+                let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
+
+                if blockers > 0 {
+                    mask |= (1 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                }
+
+                while mask > 0 {
+                    let shift = mask.trailing_zeros() as u8;
+                    mask ^= 1 << shift;
+
+                    let target = Square::from_id(shift).unwrap();
+
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+
+            for id in 4..8 {
+                let origin = Square::from_id(shift).unwrap();
+
+                let blockers = lookup::RAY_MOVES[id][origin] & occupied;
+
+                let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
+
+                if blockers > 0 {
+                    mask |= (1 << blockers.trailing_zeros()) & enemy_mask.0;
+                }
+
+                while mask > 0 {
+                    let shift = mask.trailing_zeros() as u8;
+                    mask ^= 1 << shift;
+
+                    let target = Square::from_id(shift).unwrap();
+
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+        }
+    }
+
+    pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
+        let occupied = self.white.0 | self.black.0;
+        let empty = !occupied;
+
+        let player_mask = if color == PlayerColor::White {
+            self.white
+        } else {
+            self.black
+        };
+
+        let enemy_mask = if color == PlayerColor::White {
+            self.black
+        } else {
+            self.white
+        };
+
+        let mut moves = Vec::new();
+
+        self.get_knight_moves(&mut moves, player_mask, enemy_mask);
+        self.get_king_moves(&mut moves, player_mask, enemy_mask);
+        self.get_rook_moves(&mut moves, player_mask, enemy_mask);
+        self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
+        self.get_queen_moves(&mut moves, player_mask, enemy_mask);
 
         moves
     }
