@@ -366,6 +366,56 @@ impl Board {
                 moves.push(ChessMove { origin, target });
             }
         }
+
+        //rook moves
+        let mut pieces = self.rook.0 & player_mask.0;
+        while pieces > 0 {
+            let shift = pieces.trailing_zeros() as u8;
+            pieces ^= 1 << shift;
+
+            for id in [0, 2] {
+                let origin = Square::from_id(shift).unwrap();
+
+                let blockers = lookup::RAY_MOVES[id][origin] & occupied;
+
+                let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
+
+                if blockers > 0 {
+                    mask |= (1 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                }
+
+                while mask > 0 {
+                    let shift = mask.trailing_zeros() as u8;
+                    mask ^= 1 << shift;
+
+                    let target = Square::from_id(shift).unwrap();
+
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+
+            for id in [4, 6] {
+                let origin = Square::from_id(shift).unwrap();
+
+                let blockers = lookup::RAY_MOVES[id][origin] & occupied;
+
+                let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
+
+                if blockers > 0 {
+                    mask |= (1 << blockers.trailing_zeros()) & enemy_mask.0;
+                }
+
+                while mask > 0 {
+                    let shift = mask.trailing_zeros() as u8;
+                    mask ^= 1 << shift;
+
+                    let target = Square::from_id(shift).unwrap();
+
+                    moves.push(ChessMove { origin, target });
+                }
+            }
+        }
+
         moves
     }
 }
