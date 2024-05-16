@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_variables)]
-
 use core::fmt;
 use std::ops::Index;
 
@@ -122,8 +120,8 @@ pub struct Board {
     half_move_clock: u32,
     full_move_clock: u32,
 
-    white: Bitboard,
-    black: Bitboard,
+    pub white: Bitboard,
+    pub black: Bitboard,
 
     pawn: Bitboard,
     knight: Bitboard,
@@ -316,7 +314,6 @@ impl Board {
         enemy_mask: Bitboard,
     ) {
         let mut pieces = self.knight.0 & player_mask.0;
-        let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
@@ -342,7 +339,6 @@ impl Board {
         enemy_mask: Bitboard,
     ) {
         let mut pieces = self.king.0 & player_mask.0;
-        let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
@@ -678,6 +674,80 @@ impl Board {
                 pieces ^= 1 << shift;
             }
         }
+    }
+
+    pub fn is_in_check(&self, player_mask: Bitboard, enemy_mask: Bitboard) -> bool {
+        let mut pieces = self.king.0 & player_mask.0;
+        let occupied = player_mask.0 | enemy_mask.0;
+        while pieces > 0 {
+            let shift = pieces.trailing_zeros() as u8;
+            pieces ^= 1 << shift;
+
+            if lookup::KING_MOVES[shift as usize] & enemy_mask.0 & self.king.0 > 0 {
+                return true;
+            };
+
+            if lookup::KNIGHT_MOVES[shift as usize] & enemy_mask.0 & self.knight.0 > 0 {
+                return true;
+            };
+
+            for id in [0, 2] {
+                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
+
+                if (1 << (63 - blockers.leading_zeros()))
+                    & enemy_mask.0
+                    & (self.rook.0 | self.queen.0)
+                    > 0
+                {
+                    return true;
+                }
+            }
+
+            for id in [4, 6] {
+                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
+
+                if blockers == 0 {
+                    continue;
+                }
+
+                if (1 << blockers.trailing_zeros()) & enemy_mask.0 & (self.rook.0 | self.queen.0)
+                    > 0
+                {
+                    return true;
+                }
+            }
+
+            for id in [1, 3] {
+                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
+
+                if blockers == 0 {
+                    continue;
+                }
+
+                if (1 << (63 - blockers.leading_zeros()))
+                    & enemy_mask.0
+                    & (self.bishop.0 | self.queen.0)
+                    > 0
+                {
+                    return true;
+                }
+            }
+
+            for id in [5, 7] {
+                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
+
+                if blockers == 0 {
+                    continue;
+                }
+
+                if (1 << blockers.trailing_zeros()) & enemy_mask.0 & (self.bishop.0 | self.queen.0)
+                    > 0
+                {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
