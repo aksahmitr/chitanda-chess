@@ -536,6 +536,7 @@ impl Board {
         enemy_mask: Bitboard,
         color: PlayerColor,
     ) {
+        //single push
         let mut pieces = player_mask.0 & self.pawn.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
@@ -543,19 +544,54 @@ impl Board {
             let origin = Square::from_id(shift).unwrap();
 
             //will break if on final rank
-            let target = Square::from_id(shift - 8).unwrap();
 
             if color == PlayerColor::White {
-                if ((1 << shift) >> 8) & !occupied > 0 {
+                let target = Square::from_id(shift - 8).unwrap();
+                if ((1 << shift) >> 8) & occupied == 0 {
                     moves.push(ChessMove { origin, target });
                 }
             } else {
-                if ((1 << shift) << 8) & !occupied > 0 {
+                let target = Square::from_id(shift + 8).unwrap();
+                if ((1 << shift) << 8) & occupied == 0 {
                     moves.push(ChessMove { origin, target });
                 }
             }
 
             pieces ^= 1 << shift;
+        }
+
+        if color == PlayerColor::White {
+            let mut pieces = player_mask.0 & self.pawn.0 & 0xFF000000000000;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let occupied = player_mask.0 | enemy_mask.0;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+                let target = Square::from_id(shift - 16).unwrap();
+
+                if (((1 << shift) >> 8) | ((1 << shift) >> 16)) & occupied == 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
+        } else {
+            let mut pieces = player_mask.0 & self.pawn.0 & 0xFF00;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let occupied = player_mask.0 | enemy_mask.0;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+                let target = Square::from_id(shift + 16).unwrap();
+
+                if (((1 << shift) << 8) | ((1 << shift) << 16)) & occupied == 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
         }
     }
 
