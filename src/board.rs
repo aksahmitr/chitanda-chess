@@ -368,6 +368,9 @@ impl Board {
         enemy_mask: Bitboard,
     ) {
         let mut pieces = self.rook.0 & player_mask.0;
+        let en_passant_mask = self
+            .en_passant_square
+            .map_or(0, |square| (1 << square as u8) as u64);
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             let occupied = player_mask.0 | enemy_mask.0;
@@ -536,9 +539,10 @@ impl Board {
         enemy_mask: Bitboard,
         color: PlayerColor,
     ) {
+        let pawns = player_mask.0 & self.pawn.0;
         if color == PlayerColor::White {
             //single push
-            let mut pieces = player_mask.0 & self.pawn.0;
+            let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask.0;
@@ -555,7 +559,7 @@ impl Board {
             }
 
             //double push
-            let mut pieces = player_mask.0 & self.pawn.0 & 0xFF000000000000;
+            let mut pieces = pawns & 0xFF000000000000;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask.0;
@@ -573,7 +577,7 @@ impl Board {
 
             //left capture
 
-            let mut pieces = player_mask.0 & self.pawn.0 & 0x7F7F7F7F7F7F7F7F;
+            let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let origin = Square::from_id(shift).unwrap();
@@ -590,7 +594,7 @@ impl Board {
 
             //right capture
 
-            let mut pieces = player_mask.0 & self.pawn.0 & 0xFEFEFEFEFEFEFEFE;
+            let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let origin = Square::from_id(shift).unwrap();
@@ -606,7 +610,7 @@ impl Board {
             }
         } else {
             //single push
-            let mut pieces = player_mask.0 & self.pawn.0;
+            let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask.0;
@@ -623,7 +627,7 @@ impl Board {
             }
 
             //double push
-            let mut pieces = player_mask.0 & self.pawn.0 & 0xFF00;
+            let mut pieces = pawns & 0xFF00;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask.0;
@@ -633,6 +637,40 @@ impl Board {
                 let target = Square::from_id(shift + 16).unwrap();
 
                 if (((1 << shift) << 8) | ((1 << shift) << 16)) & occupied == 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
+
+            //left capture
+
+            let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+                let target = Square::from_id(shift + 7).unwrap();
+
+                if (1 << (shift + 7)) & enemy_mask.0 > 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
+
+            //right capture
+
+            let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+                let target = Square::from_id(shift + 9).unwrap();
+
+                if (1 << (shift + 9)) & enemy_mask.0 > 0 {
                     moves.push(ChessMove { origin, target });
                 }
 
