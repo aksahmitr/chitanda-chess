@@ -676,7 +676,12 @@ impl Board {
         }
     }
 
-    pub fn is_in_check(&self, player_mask: Bitboard, enemy_mask: Bitboard) -> bool {
+    pub fn is_in_check(
+        &self,
+        player_mask: Bitboard,
+        enemy_mask: Bitboard,
+        color: PlayerColor,
+    ) -> bool {
         let mut pieces = self.king.0 & player_mask.0;
         let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
@@ -745,6 +750,30 @@ impl Board {
                 {
                     return true;
                 }
+            }
+
+            //pawn checks
+
+            let mut mask: u64 = 0;
+
+            if color == PlayerColor::White {
+                if shift >= 9 {
+                    mask |= 1 << (shift - 9);
+                }
+                if shift >= 7 {
+                    mask |= 1 << (shift - 7);
+                }
+            } else {
+                if shift + 9 < 64 {
+                    mask |= 1 << (shift + 9);
+                }
+                if shift + 7 < 64 {
+                    mask |= 1 << (shift + 7);
+                }
+            }
+
+            if mask & enemy_mask.0 & self.pawn.0 > 0 {
+                return true;
             }
         }
         false
