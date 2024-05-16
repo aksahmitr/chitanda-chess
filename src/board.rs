@@ -76,7 +76,7 @@ pub struct ChessMove {
     target: Square,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum PlayerColor {
     White,
     Black,
@@ -107,6 +107,7 @@ impl fmt::Display for Bitboard {
     }
 }
 
+#[derive(Clone)]
 pub struct Board {
     active_color: PlayerColor,
 
@@ -227,6 +228,7 @@ impl Board {
     }
 
     fn set_piece(&mut self, piece: Piece, player: PlayerColor, square: Square) {
+        self.remove_piece(square);
         let pos: u64 = 1 << square as u8;
         match piece {
             Piece::Pawn => self.pawn.0 |= pos,
@@ -239,6 +241,42 @@ impl Board {
         match player {
             PlayerColor::White => self.white.0 |= pos,
             PlayerColor::Black => self.black.0 |= pos,
+        }
+    }
+
+    fn remove_piece(&mut self, square: Square) {
+        let pos: u64 = !(1 << square as u8);
+        self.pawn.0 &= pos;
+        self.knight.0 &= pos;
+        self.bishop.0 &= pos;
+        self.rook.0 &= pos;
+        self.queen.0 &= pos;
+        self.king.0 &= pos;
+        self.white.0 &= pos;
+        self.black.0 &= pos;
+    }
+
+    fn get_piece(&self, square: Square) -> Option<(Piece, PlayerColor)> {
+        let pos: u64 = 1 << square as u8;
+        let color = if pos & self.white.0 > 0 {
+            PlayerColor::White
+        } else {
+            PlayerColor::Black
+        };
+        if self.pawn.0 & pos > 0 {
+            Some((Piece::Pawn, color))
+        } else if self.knight.0 & pos > 0 {
+            Some((Piece::Knight, color))
+        } else if self.bishop.0 & pos > 0 {
+            Some((Piece::Bishop, color))
+        } else if self.rook.0 & pos > 0 {
+            Some((Piece::Rook, color))
+        } else if self.queen.0 & pos > 0 {
+            Some((Piece::Queen, color))
+        } else if self.king.0 & pos > 0 {
+            Some((Piece::King, color))
+        } else {
+            None
         }
     }
 
@@ -676,12 +714,17 @@ impl Board {
         }
     }
 
-    pub fn is_in_check(
-        &self,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
-        color: PlayerColor,
-    ) -> bool {
+    pub fn is_in_check(&self, color: PlayerColor) -> bool {
+        let player_mask;
+        let enemy_mask;
+        if color == PlayerColor::White {
+            player_mask = self.white;
+            enemy_mask = self.black;
+        } else {
+            player_mask = self.black;
+            enemy_mask = self.white;
+        }
+
         let mut pieces = self.king.0 & player_mask.0;
         let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
@@ -802,5 +845,21 @@ impl Board {
         self.get_pawn_moves(&mut moves, player_mask, enemy_mask, color);
 
         moves
+    }
+
+    pub fn make_move(&mut self, chess_move: ChessMove) {
+        //does not consider en passant and castling
+        let piece = self.get_piece(chess_move.origin).unwrap();
+        self.set_piece(piece.0, piece.1, chess_move.target);
+        self.remove_piece(chess_move.origin);
+    }
+
+    pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
+        //does not consider en passant and castling
+        let mut new_board = self.clone();
+        let piece = self.get_piece(chess_move.origin).unwrap();
+        new_board.set_piece(piece.0, piece.1, chess_move.target);
+        new_board.remove_piece(chess_move.origin);
+        !new_board.is_in_check(piece.1)
     }
 }
