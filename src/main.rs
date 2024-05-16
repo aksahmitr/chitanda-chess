@@ -3,8 +3,8 @@ mod lookup;
 
 fn main() {
     let cur =
-        board::Board::from_fen("rnbqkbnr/p1pppppp/8/1p6/4P3/7P/PPPP1PP1/RNBQKBNR b KQkq - 0 2")
+        board::Board::from_fen("rnbqkbnr/ppp1p1pp/3p4/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3")
             .unwrap();
 
-    println!("{:#?}", cur.get_moves(board::PlayerColor::Black));
+    println!("{:#?}", cur.get_moves(board::PlayerColor::White));
 }

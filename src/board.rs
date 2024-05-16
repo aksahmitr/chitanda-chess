@@ -540,12 +540,13 @@ impl Board {
         let en_passant_mask = self
             .en_passant_square
             .map_or(0, |square| ((1 as u64) << square as u8));
+        let enemy_mask = enemy_mask.0 | en_passant_mask;
         if color == PlayerColor::White {
             //single push
             let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask.0;
+                let occupied = player_mask.0 | enemy_mask;
                 let origin = Square::from_id(shift).unwrap();
 
                 //will break if on final rank
@@ -562,7 +563,7 @@ impl Board {
             let mut pieces = pawns & 0xFF000000000000;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask.0;
+                let occupied = player_mask.0 | enemy_mask;
                 let origin = Square::from_id(shift).unwrap();
 
                 //will break if on final rank
@@ -585,7 +586,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::from_id(shift - 9).unwrap();
 
-                if (1 << (shift - 9)) & enemy_mask.0 > 0 {
+                if (1 << (shift - 9)) & enemy_mask > 0 {
                     moves.push(ChessMove { origin, target });
                 }
 
@@ -602,7 +603,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::from_id(shift - 7).unwrap();
 
-                if (1 << (shift - 7)) & enemy_mask.0 > 0 {
+                if (1 << (shift - 7)) & enemy_mask > 0 {
                     moves.push(ChessMove { origin, target });
                 }
 
@@ -613,7 +614,7 @@ impl Board {
             let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask.0;
+                let occupied = player_mask.0 | enemy_mask;
                 let origin = Square::from_id(shift).unwrap();
 
                 //will break if on final rank
@@ -630,7 +631,7 @@ impl Board {
             let mut pieces = pawns & 0xFF00;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask.0;
+                let occupied = player_mask.0 | enemy_mask;
                 let origin = Square::from_id(shift).unwrap();
 
                 //will break if on final rank
@@ -653,7 +654,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::from_id(shift + 7).unwrap();
 
-                if (1 << (shift + 7)) & enemy_mask.0 > 0 {
+                if (1 << (shift + 7)) & enemy_mask > 0 {
                     moves.push(ChessMove { origin, target });
                 }
 
@@ -670,7 +671,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::from_id(shift + 9).unwrap();
 
-                if (1 << (shift + 9)) & enemy_mask.0 > 0 {
+                if (1 << (shift + 9)) & enemy_mask > 0 {
                     moves.push(ChessMove { origin, target });
                 }
 
@@ -694,11 +695,11 @@ impl Board {
 
         let mut moves = Vec::new();
 
-        // self.get_knight_moves(&mut moves, player_mask, enemy_mask);
-        // self.get_king_moves(&mut moves, player_mask, enemy_mask);
-        // self.get_rook_moves(&mut moves, player_mask, enemy_mask);
-        // self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
-        // self.get_queen_moves(&mut moves, player_mask, enemy_mask);
+        self.get_knight_moves(&mut moves, player_mask, enemy_mask);
+        self.get_king_moves(&mut moves, player_mask, enemy_mask);
+        self.get_rook_moves(&mut moves, player_mask, enemy_mask);
+        self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
+        self.get_queen_moves(&mut moves, player_mask, enemy_mask);
         self.get_pawn_moves(&mut moves, player_mask, enemy_mask, color);
 
         moves
