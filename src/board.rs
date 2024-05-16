@@ -68,7 +68,7 @@ impl Square {
             .unwrap()
             .to_digit(10)
             .ok_or(BoardError::InvalidSquare)? as u8;
-        Ok(Square::new(file, rank)?)
+        Ok(Square::new(file, rank - 1)?)
     }
 }
 
@@ -537,10 +537,9 @@ impl Board {
         color: PlayerColor,
     ) {
         let pawns = player_mask.0 & self.pawn.0;
-        // let en_passant_mask = self
-        //     .en_passant_square
-        //     .map_or(0, |square| (1 << square as u8) as u64);
-        // println!("{}", Bitboard(en_passant_mask));
+        let en_passant_mask = self
+            .en_passant_square
+            .map_or(0, |square| ((1 as u64) << square as u8));
         if color == PlayerColor::White {
             //single push
             let mut pieces = pawns;
