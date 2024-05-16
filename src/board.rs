@@ -536,31 +536,25 @@ impl Board {
         enemy_mask: Bitboard,
         color: PlayerColor,
     ) {
-        //single push
-        let mut pieces = player_mask.0 & self.pawn.0;
-        while pieces > 0 {
-            let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
-            let origin = Square::from_id(shift).unwrap();
+        if color == PlayerColor::White {
+            //single push
+            let mut pieces = player_mask.0 & self.pawn.0;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let occupied = player_mask.0 | enemy_mask.0;
+                let origin = Square::from_id(shift).unwrap();
 
-            //will break if on final rank
+                //will break if on final rank
 
-            if color == PlayerColor::White {
                 let target = Square::from_id(shift - 8).unwrap();
                 if ((1 << shift) >> 8) & occupied == 0 {
                     moves.push(ChessMove { origin, target });
                 }
-            } else {
-                let target = Square::from_id(shift + 8).unwrap();
-                if ((1 << shift) << 8) & occupied == 0 {
-                    moves.push(ChessMove { origin, target });
-                }
+
+                pieces ^= 1 << shift;
             }
 
-            pieces ^= 1 << shift;
-        }
-
-        if color == PlayerColor::White {
+            //double push
             let mut pieces = player_mask.0 & self.pawn.0 & 0xFF000000000000;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
@@ -576,7 +570,59 @@ impl Board {
 
                 pieces ^= 1 << shift;
             }
+
+            //left capture
+
+            let mut pieces = player_mask.0 & self.pawn.0 & 0x7F7F7F7F7F7F7F7F;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+                let target = Square::from_id(shift - 9).unwrap();
+
+                if (1 << (shift - 9)) & enemy_mask.0 > 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
+
+            //right capture
+
+            let mut pieces = player_mask.0 & self.pawn.0 & 0xFEFEFEFEFEFEFEFE;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+                let target = Square::from_id(shift - 7).unwrap();
+
+                if (1 << (shift - 7)) & enemy_mask.0 > 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
         } else {
+            //single push
+            let mut pieces = player_mask.0 & self.pawn.0;
+            while pieces > 0 {
+                let shift = pieces.trailing_zeros() as u8;
+                let occupied = player_mask.0 | enemy_mask.0;
+                let origin = Square::from_id(shift).unwrap();
+
+                //will break if on final rank
+
+                let target = Square::from_id(shift + 8).unwrap();
+                if ((1 << shift) << 8) & occupied == 0 {
+                    moves.push(ChessMove { origin, target });
+                }
+
+                pieces ^= 1 << shift;
+            }
+
+            //double push
             let mut pieces = player_mask.0 & self.pawn.0 & 0xFF00;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
@@ -610,11 +656,11 @@ impl Board {
 
         let mut moves = Vec::new();
 
-        self.get_knight_moves(&mut moves, player_mask, enemy_mask);
-        self.get_king_moves(&mut moves, player_mask, enemy_mask);
-        self.get_rook_moves(&mut moves, player_mask, enemy_mask);
-        self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
-        self.get_queen_moves(&mut moves, player_mask, enemy_mask);
+        // self.get_knight_moves(&mut moves, player_mask, enemy_mask);
+        // self.get_king_moves(&mut moves, player_mask, enemy_mask);
+        // self.get_rook_moves(&mut moves, player_mask, enemy_mask);
+        // self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
+        // self.get_queen_moves(&mut moves, player_mask, enemy_mask);
         self.get_pawn_moves(&mut moves, player_mask, enemy_mask, color);
 
         moves
