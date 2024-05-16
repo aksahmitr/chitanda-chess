@@ -368,9 +368,6 @@ impl Board {
         enemy_mask: Bitboard,
     ) {
         let mut pieces = self.rook.0 & player_mask.0;
-        let en_passant_mask = self
-            .en_passant_square
-            .map_or(0, |square| (1 << square as u8) as u64);
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             let occupied = player_mask.0 | enemy_mask.0;
@@ -540,6 +537,10 @@ impl Board {
         color: PlayerColor,
     ) {
         let pawns = player_mask.0 & self.pawn.0;
+        let en_passant_mask = self
+            .en_passant_square
+            .map_or(0, |square| (1 << square as u8) as u64);
+        println!("{}", Bitboard(en_passant_mask));
         if color == PlayerColor::White {
             //single push
             let mut pieces = pawns;
