@@ -76,12 +76,14 @@ pub struct ChessMove {
     target: Square,
 }
 
+//make it index arrays of size 2
 #[derive(PartialEq, Clone, Copy)]
 pub enum PlayerColor {
     White,
     Black,
 }
 
+//make it index arrays of size 6
 pub enum Piece {
     Pawn,
     Knight,
@@ -714,6 +716,102 @@ impl Board {
         }
     }
 
+    pub fn is_attacked(&self, square: Square, color: PlayerColor) -> bool {
+        let player_mask: Bitboard;
+        let enemy_mask: Bitboard;
+        if color == PlayerColor::White {
+            player_mask = self.white;
+            enemy_mask = self.black;
+        } else {
+            player_mask = self.black;
+            enemy_mask = self.white;
+        }
+        let occupied = player_mask.0 | enemy_mask.0;
+        if lookup::KING_MOVES[square as usize] & enemy_mask.0 & self.king.0 > 0 {
+            return true;
+        };
+
+        if lookup::KNIGHT_MOVES[square as usize] & enemy_mask.0 & self.knight.0 > 0 {
+            return true;
+        };
+
+        for id in [0, 2] {
+            let blockers = lookup::RAY_MOVES[id][square as usize] & occupied;
+
+            if (1 << (63 - blockers.leading_zeros())) & enemy_mask.0 & (self.rook.0 | self.queen.0)
+                > 0
+            {
+                return true;
+            }
+        }
+
+        for id in [4, 6] {
+            let blockers = lookup::RAY_MOVES[id][square as usize] & occupied;
+
+            if blockers == 0 {
+                continue;
+            }
+
+            if (1 << blockers.trailing_zeros()) & enemy_mask.0 & (self.rook.0 | self.queen.0) > 0 {
+                return true;
+            }
+        }
+
+        for id in [1, 3] {
+            let blockers = lookup::RAY_MOVES[id][square as usize] & occupied;
+
+            if blockers == 0 {
+                continue;
+            }
+
+            if (1 << (63 - blockers.leading_zeros()))
+                & enemy_mask.0
+                & (self.bishop.0 | self.queen.0)
+                > 0
+            {
+                return true;
+            }
+        }
+
+        for id in [5, 7] {
+            let blockers = lookup::RAY_MOVES[id][square as usize] & occupied;
+
+            if blockers == 0 {
+                continue;
+            }
+
+            if (1 << blockers.trailing_zeros()) & enemy_mask.0 & (self.bishop.0 | self.queen.0) > 0
+            {
+                return true;
+            }
+        }
+
+        //pawn checks
+
+        let mut mask: u64 = 0;
+
+        if color == PlayerColor::White {
+            if square as u8 >= 9 {
+                mask |= 1 << (square as u8 - 9);
+            }
+            if square as u8 >= 7 {
+                mask |= 1 << (square as u8 - 7);
+            }
+        } else {
+            if square as u8 + 9 < 64 {
+                mask |= 1 << (square as u8 + 9);
+            }
+            if square as u8 + 7 < 64 {
+                mask |= 1 << (square as u8 + 7);
+            }
+        }
+
+        if mask & enemy_mask.0 & self.pawn.0 > 0 {
+            return true;
+        }
+        false
+    }
+
     pub fn is_in_check(&self, color: PlayerColor) -> bool {
         let player_mask;
         let enemy_mask;
@@ -726,100 +824,38 @@ impl Board {
         }
 
         let mut pieces = self.king.0 & player_mask.0;
-        let occupied = player_mask.0 | enemy_mask.0;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
-
-            if lookup::KING_MOVES[shift as usize] & enemy_mask.0 & self.king.0 > 0 {
-                return true;
-            };
-
-            if lookup::KNIGHT_MOVES[shift as usize] & enemy_mask.0 & self.knight.0 > 0 {
-                return true;
-            };
-
-            for id in [0, 2] {
-                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
-
-                if (1 << (63 - blockers.leading_zeros()))
-                    & enemy_mask.0
-                    & (self.rook.0 | self.queen.0)
-                    > 0
-                {
-                    return true;
-                }
-            }
-
-            for id in [4, 6] {
-                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
-
-                if blockers == 0 {
-                    continue;
-                }
-
-                if (1 << blockers.trailing_zeros()) & enemy_mask.0 & (self.rook.0 | self.queen.0)
-                    > 0
-                {
-                    return true;
-                }
-            }
-
-            for id in [1, 3] {
-                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
-
-                if blockers == 0 {
-                    continue;
-                }
-
-                if (1 << (63 - blockers.leading_zeros()))
-                    & enemy_mask.0
-                    & (self.bishop.0 | self.queen.0)
-                    > 0
-                {
-                    return true;
-                }
-            }
-
-            for id in [5, 7] {
-                let blockers = lookup::RAY_MOVES[id][shift as usize] & occupied;
-
-                if blockers == 0 {
-                    continue;
-                }
-
-                if (1 << blockers.trailing_zeros()) & enemy_mask.0 & (self.bishop.0 | self.queen.0)
-                    > 0
-                {
-                    return true;
-                }
-            }
-
-            //pawn checks
-
-            let mut mask: u64 = 0;
-
-            if color == PlayerColor::White {
-                if shift >= 9 {
-                    mask |= 1 << (shift - 9);
-                }
-                if shift >= 7 {
-                    mask |= 1 << (shift - 7);
-                }
-            } else {
-                if shift + 9 < 64 {
-                    mask |= 1 << (shift + 9);
-                }
-                if shift + 7 < 64 {
-                    mask |= 1 << (shift + 7);
-                }
-            }
-
-            if mask & enemy_mask.0 & self.pawn.0 > 0 {
+            if self.is_attacked(Square::from_id(shift).unwrap(), color) {
                 return true;
             }
         }
         false
+    }
+
+    fn can_castle_kingside(&self, color: PlayerColor) -> bool {
+        if color == PlayerColor::White {
+            !(self.is_attacked(Square::E1, color)
+                || self.is_attacked(Square::F1, color)
+                || self.is_attacked(Square::G1, color))
+        } else {
+            !(self.is_attacked(Square::E8, color)
+                || self.is_attacked(Square::F8, color)
+                || self.is_attacked(Square::G8, color))
+        }
+    }
+
+    fn can_castle_queenside(&self, color: PlayerColor) -> bool {
+        if color == PlayerColor::White {
+            !(self.is_attacked(Square::E1, color)
+                || self.is_attacked(Square::D1, color)
+                || self.is_attacked(Square::C1, color))
+        } else {
+            !(self.is_attacked(Square::E8, color)
+                || self.is_attacked(Square::D8, color)
+                || self.is_attacked(Square::C8, color))
+        }
     }
 
     pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
