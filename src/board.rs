@@ -835,6 +835,8 @@ impl Board {
         false
     }
 
+    //does not check if piece exists
+
     fn can_castle_kingside(&self, color: PlayerColor) -> bool {
         if color == PlayerColor::White {
             !(self.is_attacked(Square::E1, color)
@@ -885,7 +887,6 @@ impl Board {
     }
 
     pub fn make_move(&mut self, chess_move: ChessMove) {
-        //does not consider en passant and castling
         let piece = self.get_piece(chess_move.origin).unwrap();
         self.set_piece(piece.0, piece.1, chess_move.target);
         self.remove_piece(chess_move.origin);
@@ -912,6 +913,38 @@ impl Board {
             }
         } else {
             self.en_passant_square = None;
+            if piece.0 == Piece::King {
+                if piece.1 == PlayerColor::White {
+                    if self.white_castle_kingside && chess_move.target == Square::G1 {
+                        self.set_piece(Piece::Rook, PlayerColor::White, Square::F1);
+                        self.remove_piece(Square::H1);
+                    } else if self.white_castle_kingside && chess_move.target == Square::C1 {
+                        self.set_piece(Piece::Rook, PlayerColor::White, Square::D1);
+                        self.remove_piece(Square::A1);
+                    }
+                    self.white_castle_kingside = false;
+                    self.white_castle_queenside = false;
+                } else {
+                    self.black_castle_kingside = false;
+                    self.black_castle_queenside = false;
+                }
+            } else if piece.0 == Piece::Rook {
+                match chess_move.origin {
+                    Square::A1 => {
+                        self.white_castle_queenside = false;
+                    }
+                    Square::H1 => {
+                        self.white_castle_kingside = false;
+                    }
+                    Square::A8 => {
+                        self.black_castle_queenside = false;
+                    }
+                    Square::H8 => {
+                        self.black_castle_kingside = false;
+                    }
+                    _ => (),
+                }
+            }
         }
     }
 
