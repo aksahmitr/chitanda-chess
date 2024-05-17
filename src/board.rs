@@ -835,17 +835,17 @@ impl Board {
         false
     }
 
-    //does not check if piece exists
-
     fn can_castle_kingside(&self, color: PlayerColor) -> bool {
         if color == PlayerColor::White {
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::F1, color)
                 || self.is_attacked(Square::G1, color))
+                && ((self.white.0 | self.black.0) & 0x6000000000000000 == 0)
         } else {
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::F8, color)
                 || self.is_attacked(Square::G8, color))
+                && ((self.white.0 | self.black.0) & 0x60 == 0)
         }
     }
 
@@ -854,10 +854,12 @@ impl Board {
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::D1, color)
                 || self.is_attacked(Square::C1, color))
+                && ((self.white.0 | self.black.0) & 0xE00000000000000 == 0)
         } else {
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::D8, color)
                 || self.is_attacked(Square::C8, color))
+                && ((self.white.0 | self.black.0) & 0xE == 0)
         }
     }
 
