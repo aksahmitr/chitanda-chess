@@ -77,14 +77,14 @@ pub struct ChessMove {
 }
 
 //make it index arrays of size 2
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum PlayerColor {
     White,
     Black,
 }
 
 //make it index arrays of size 6
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Piece {
     Pawn,
     Knight,
@@ -94,7 +94,7 @@ pub enum Piece {
     King,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Bitboard(pub u64);
 
 impl fmt::Display for Bitboard {
@@ -110,7 +110,7 @@ impl fmt::Display for Bitboard {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Board {
     active_color: PlayerColor,
 
@@ -378,6 +378,7 @@ impl Board {
         moves: &mut Vec<ChessMove>,
         player_mask: Bitboard,
         enemy_mask: Bitboard,
+        color: PlayerColor,
     ) {
         let mut pieces = self.king.0 & player_mask.0;
         while pieces > 0 {
@@ -394,6 +395,34 @@ impl Board {
                 let target = Square::from_id(shift).unwrap();
 
                 moves.push(ChessMove { origin, target });
+            }
+        }
+
+        if color == PlayerColor::White {
+            if self.can_castle_kingside(PlayerColor::White) {
+                moves.push(ChessMove {
+                    origin: Square::E1,
+                    target: Square::G1,
+                });
+            }
+            if self.can_castle_queenside(PlayerColor::White) {
+                moves.push(ChessMove {
+                    origin: Square::E1,
+                    target: Square::C1,
+                });
+            }
+        } else {
+            if self.can_castle_kingside(PlayerColor::Black) {
+                moves.push(ChessMove {
+                    origin: Square::E8,
+                    target: Square::G8,
+                });
+            }
+            if self.can_castle_queenside(PlayerColor::Black) {
+                moves.push(ChessMove {
+                    origin: Square::E8,
+                    target: Square::C8,
+                });
             }
         }
     }
@@ -840,11 +869,17 @@ impl Board {
 
     fn can_castle_kingside(&self, color: PlayerColor) -> bool {
         if color == PlayerColor::White {
+            if !self.white_castle_kingside {
+                return false;
+            }
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::F1, color)
                 || self.is_attacked(Square::G1, color))
                 && ((self.white.0 | self.black.0) & 0x6000000000000000 == 0)
         } else {
+            if !self.black_castle_kingside {
+                return false;
+            }
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::F8, color)
                 || self.is_attacked(Square::G8, color))
@@ -854,11 +889,17 @@ impl Board {
 
     fn can_castle_queenside(&self, color: PlayerColor) -> bool {
         if color == PlayerColor::White {
+            if !self.white_castle_queenside {
+                return false;
+            }
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::D1, color)
                 || self.is_attacked(Square::C1, color))
                 && ((self.white.0 | self.black.0) & 0xE00000000000000 == 0)
         } else {
+            if !self.black_castle_queenside {
+                return false;
+            }
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::D8, color)
                 || self.is_attacked(Square::C8, color))
@@ -882,7 +923,7 @@ impl Board {
         let mut moves = Vec::new();
 
         self.get_knight_moves(&mut moves, player_mask, enemy_mask);
-        self.get_king_moves(&mut moves, player_mask, enemy_mask);
+        self.get_king_moves(&mut moves, player_mask, enemy_mask, color);
         self.get_rook_moves(&mut moves, player_mask, enemy_mask);
         self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
         self.get_queen_moves(&mut moves, player_mask, enemy_mask);
@@ -920,16 +961,23 @@ impl Board {
             self.en_passant_square = None;
             if piece.0 == Piece::King {
                 if piece.1 == PlayerColor::White {
-                    if self.white_castle_kingside && chess_move.target == Square::G1 {
+                    if chess_move.origin == Square::E1 && chess_move.target == Square::G1 {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::F1);
                         self.remove_piece(Square::H1);
-                    } else if self.white_castle_kingside && chess_move.target == Square::C1 {
+                    } else if chess_move.origin == Square::E1 && chess_move.target == Square::C1 {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::D1);
                         self.remove_piece(Square::A1);
                     }
                     self.white_castle_kingside = false;
                     self.white_castle_queenside = false;
                 } else {
+                    if chess_move.origin == Square::E8 && chess_move.target == Square::G8 {
+                        self.set_piece(Piece::Rook, PlayerColor::White, Square::F8);
+                        self.remove_piece(Square::H8);
+                    } else if chess_move.origin == Square::E8 && chess_move.target == Square::C8 {
+                        self.set_piece(Piece::Rook, PlayerColor::White, Square::D8);
+                        self.remove_piece(Square::A8);
+                    }
                     self.black_castle_kingside = false;
                     self.black_castle_queenside = false;
                 }

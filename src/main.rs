@@ -5,7 +5,7 @@ mod board;
 mod lookup;
 
 fn count(ply: u8, board: Board) -> u64 {
-    if ply == 6 {
+    if ply == 1 {
         return 1;
     }
     let mut res: u64 = 0;
@@ -33,7 +33,10 @@ fn count(ply: u8, board: Board) -> u64 {
 }
 
 fn main() {
-    let cur = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+    let cur =
+        Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0")
+            .unwrap();
+
     println!("{}", count(0, cur));
     //println!("{}", cur.get_moves(PlayerColor::Black).len());
 }
