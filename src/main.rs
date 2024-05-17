@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use board::Board;
 use board::PlayerColor;
 
@@ -5,7 +7,7 @@ mod board;
 mod lookup;
 
 fn count(ply: u8, board: Board) -> u64 {
-    if ply == 6 {
+    if ply == 5 {
         return 1;
     }
     let mut res: u64 = 0;
@@ -21,10 +23,10 @@ fn count(ply: u8, board: Board) -> u64 {
         if !next.is_in_check(color) {
             let cur = count(ply + 1, next);
             res += cur;
-            if ply == 0 {
-                print!("{:?}{:?}", pseudo_move.origin, pseudo_move.target);
-                println!(": {}", cur);
-            }
+            // if ply == 0 {
+            //     print!("{:?}{:?}", pseudo_move.origin, pseudo_move.target);
+            //     println!(": {}", cur);
+            // }
         }
     }
     res
@@ -36,15 +38,15 @@ fn main() {
     )
     .unwrap();
 
-    //println!("{}", cur.is_in_check(PlayerColor::Black));
-
-    // println!("{:#?}", cur);
-    // println!(
-    //     "{} {}",
-    //     cur.can_castle_kingside(PlayerColor::Black),
-    //     cur.can_castle_queenside(PlayerColor::Black)
-    // );
-    //println!("{:#?}", cur.get_moves(PlayerColor::Black));
-    // println!("{}", cur.get_moves(PlayerColor::Black).len());
-    println!("{}", count(0, cur));
+    use std::time::Instant;
+    let mut avg: Duration = Duration::from_micros(0);
+    for i in 0..100 {
+        let now = Instant::now();
+        let ans = count(0, cur.clone());
+        let elapsed = now.elapsed();
+        avg += elapsed;
+        println!("{}/100", i + 1);
+    }
+    avg /= 100;
+    println!("Average Time taken: {:.2?}", avg);
 }

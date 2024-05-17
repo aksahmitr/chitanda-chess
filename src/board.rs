@@ -25,14 +25,9 @@ impl Index<Square> for [u64; 64] {
     }
 }
 
-impl Square {
-    pub fn new(file: u8, rank: u8) -> Result<Square, BoardError> {
-        let pos: u8 = 8 * (7 - rank) + file;
-
-        Square::from_id(pos)
-    }
-
-    pub fn from_id(id: u8) -> Result<Square, BoardError> {
+impl TryFrom<u8> for Square {
+    type Error = BoardError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         //replace with match statement later
 
         use Square::*;
@@ -50,9 +45,17 @@ impl Square {
         ];
 
         LOOKUP
-            .get(id as usize)
+            .get(value as usize)
             .ok_or(BoardError::OutOfBoundAccess)
             .copied()
+    }
+}
+
+impl Square {
+    pub fn new(file: u8, rank: u8) -> Result<Square, BoardError> {
+        let pos: u8 = 8 * (7 - rank) + file;
+
+        Square::try_from(pos)
     }
 
     pub fn from_algebraic_notation(square: &str) -> Result<Square, BoardError> {
@@ -360,14 +363,14 @@ impl Board {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
 
-            let origin = Square::from_id(shift).unwrap();
+            let origin = Square::try_from(shift).unwrap();
             let mut mask = lookup::KNIGHT_MOVES[origin] & !player_mask.0;
 
             while mask > 0 {
                 let shift = mask.trailing_zeros() as u8;
                 mask ^= 1 << shift;
 
-                let target = Square::from_id(shift).unwrap();
+                let target = Square::try_from(shift).unwrap();
 
                 moves.push(ChessMove {
                     origin,
@@ -390,14 +393,14 @@ impl Board {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
 
-            let origin = Square::from_id(shift).unwrap();
+            let origin = Square::try_from(shift).unwrap();
             let mut mask = lookup::KING_MOVES[origin] & !player_mask.0;
 
             while mask > 0 {
                 let shift = mask.trailing_zeros() as u8;
                 mask ^= 1 << shift;
 
-                let target = Square::from_id(shift).unwrap();
+                let target = Square::try_from(shift).unwrap();
 
                 moves.push(ChessMove {
                     origin,
@@ -453,7 +456,7 @@ impl Board {
             pieces ^= 1 << shift;
 
             for id in [0, 2] {
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 let blockers = lookup::RAY_MOVES[id][origin] & occupied;
 
@@ -467,7 +470,7 @@ impl Board {
                     let shift = mask.trailing_zeros() as u8;
                     mask ^= 1 << shift;
 
-                    let target = Square::from_id(shift).unwrap();
+                    let target = Square::try_from(shift).unwrap();
 
                     moves.push(ChessMove {
                         origin,
@@ -478,7 +481,7 @@ impl Board {
             }
 
             for id in [4, 6] {
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 let blockers = lookup::RAY_MOVES[id][origin] & occupied;
 
@@ -492,7 +495,7 @@ impl Board {
                     let shift = mask.trailing_zeros() as u8;
                     mask ^= 1 << shift;
 
-                    let target = Square::from_id(shift).unwrap();
+                    let target = Square::try_from(shift).unwrap();
 
                     moves.push(ChessMove {
                         origin,
@@ -517,7 +520,7 @@ impl Board {
             pieces ^= 1 << shift;
 
             for id in [1, 3] {
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 let blockers = lookup::RAY_MOVES[id][origin] & occupied;
 
@@ -531,7 +534,7 @@ impl Board {
                     let shift = mask.trailing_zeros() as u8;
                     mask ^= 1 << shift;
 
-                    let target = Square::from_id(shift).unwrap();
+                    let target = Square::try_from(shift).unwrap();
 
                     moves.push(ChessMove {
                         origin,
@@ -542,7 +545,7 @@ impl Board {
             }
 
             for id in [5, 7] {
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 let blockers = lookup::RAY_MOVES[id][origin] & occupied;
 
@@ -556,7 +559,7 @@ impl Board {
                     let shift = mask.trailing_zeros() as u8;
                     mask ^= 1 << shift;
 
-                    let target = Square::from_id(shift).unwrap();
+                    let target = Square::try_from(shift).unwrap();
 
                     moves.push(ChessMove {
                         origin,
@@ -581,7 +584,7 @@ impl Board {
             pieces ^= 1 << shift;
 
             for id in 0..4 {
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 let blockers = lookup::RAY_MOVES[id][origin] & occupied;
 
@@ -595,7 +598,7 @@ impl Board {
                     let shift = mask.trailing_zeros() as u8;
                     mask ^= 1 << shift;
 
-                    let target = Square::from_id(shift).unwrap();
+                    let target = Square::try_from(shift).unwrap();
 
                     moves.push(ChessMove {
                         origin,
@@ -606,7 +609,7 @@ impl Board {
             }
 
             for id in 4..8 {
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 let blockers = lookup::RAY_MOVES[id][origin] & occupied;
 
@@ -620,7 +623,7 @@ impl Board {
                     let shift = mask.trailing_zeros() as u8;
                     mask ^= 1 << shift;
 
-                    let target = Square::from_id(shift).unwrap();
+                    let target = Square::try_from(shift).unwrap();
 
                     moves.push(ChessMove {
                         origin,
@@ -650,11 +653,11 @@ impl Board {
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
 
-                let target = Square::from_id(shift - 8).unwrap();
+                let target = Square::try_from(shift - 8).unwrap();
                 if ((1 << shift) >> 8) & occupied == 0 {
                     if shift - 8 < 8 {
                         moves.push(ChessMove {
@@ -694,10 +697,10 @@ impl Board {
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
-                let target = Square::from_id(shift - 16).unwrap();
+                let target = Square::try_from(shift - 16).unwrap();
 
                 if (((1 << shift) >> 8) | ((1 << shift) >> 16)) & occupied == 0 {
                     moves.push(ChessMove {
@@ -715,10 +718,10 @@ impl Board {
             let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
-                let target = Square::from_id(shift - 9).unwrap();
+                let target = Square::try_from(shift - 9).unwrap();
 
                 if (1 << (shift - 9)) & enemy_mask > 0 {
                     if shift - 8 < 8 {
@@ -758,10 +761,10 @@ impl Board {
             let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
-                let target = Square::from_id(shift - 7).unwrap();
+                let target = Square::try_from(shift - 7).unwrap();
 
                 if (1 << (shift - 7)) & enemy_mask > 0 {
                     if shift - 8 < 8 {
@@ -802,11 +805,11 @@ impl Board {
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
 
-                let target = Square::from_id(shift + 8).unwrap();
+                let target = Square::try_from(shift + 8).unwrap();
                 if ((1 << shift) << 8) & occupied == 0 {
                     if shift + 8 > 55 {
                         moves.push(ChessMove {
@@ -846,10 +849,10 @@ impl Board {
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let occupied = player_mask.0 | enemy_mask;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
-                let target = Square::from_id(shift + 16).unwrap();
+                let target = Square::try_from(shift + 16).unwrap();
 
                 if (((1 << shift) << 8) | ((1 << shift) << 16)) & occupied == 0 {
                     if shift + 8 > 55 {
@@ -890,10 +893,10 @@ impl Board {
             let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
-                let target = Square::from_id(shift + 7).unwrap();
+                let target = Square::try_from(shift + 7).unwrap();
 
                 if (1 << (shift + 7)) & enemy_mask > 0 {
                     if shift + 8 > 55 {
@@ -934,10 +937,10 @@ impl Board {
             let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let origin = Square::from_id(shift).unwrap();
+                let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
-                let target = Square::from_id(shift + 9).unwrap();
+                let target = Square::try_from(shift + 9).unwrap();
 
                 if (1 << (shift + 9)) & enemy_mask > 0 {
                     if shift + 8 > 55 {
@@ -1090,7 +1093,7 @@ impl Board {
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
-            if self.is_attacked(Square::from_id(shift).unwrap(), color) {
+            if self.is_attacked(Square::try_from(shift).unwrap(), color) {
                 return true;
             }
         }
@@ -1194,9 +1197,9 @@ impl Board {
             if let Some(en_passant_square) = self.en_passant_square {
                 if en_passant_square == chess_move.target {
                     if piece.1 == PlayerColor::White {
-                        self.remove_piece(Square::from_id(chess_move.target as u8 + 8).unwrap());
+                        self.remove_piece(Square::try_from(chess_move.target as u8 + 8).unwrap());
                     } else {
-                        self.remove_piece(Square::from_id(chess_move.target as u8 - 8).unwrap());
+                        self.remove_piece(Square::try_from(chess_move.target as u8 - 8).unwrap());
                     }
                 }
             }
@@ -1204,12 +1207,12 @@ impl Board {
             if piece.1 == PlayerColor::White {
                 if (chess_move.origin as i8 - chess_move.target as i8).abs() == 16 {
                     self.en_passant_square =
-                        Some(Square::from_id(chess_move.origin as u8 - 8).unwrap());
+                        Some(Square::try_from(chess_move.origin as u8 - 8).unwrap());
                 }
             } else {
                 if (chess_move.origin as i8 - chess_move.target as i8).abs() == 16 {
                     self.en_passant_square =
-                        Some(Square::from_id(chess_move.origin as u8 + 8).unwrap());
+                        Some(Square::try_from(chess_move.origin as u8 + 8).unwrap());
                 }
             }
         } else {
