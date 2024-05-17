@@ -1,4 +1,4 @@
 [package]
-name = "uci-protocol"
+name = "chitanda-chess"
 version = "0.1.0"
 edition = "2021"

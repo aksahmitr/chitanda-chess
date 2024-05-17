@@ -1,11 +1,39 @@
+use board::Board;
+use board::PlayerColor;
+
 mod board;
 mod lookup;
 
-fn main() {
-    let cur =
-        board::Board::from_fen("rnbqkbnr/ppp1p1pp/3p4/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3")
-            .unwrap();
+fn count(ply: u8, board: Board) -> u64 {
+    if ply == 6 {
+        return 1;
+    }
+    let mut res: u64 = 0;
+    let color = if ply % 2 == 0 {
+        PlayerColor::White
+    } else {
+        PlayerColor::Black
+    };
+    let moves = board.get_moves(color);
+    for pseudo_move in moves {
+        let mut next = board.clone();
+        if ply == 0 {
+            print!("{:?}", pseudo_move.clone());
+        }
+        next.make_move(pseudo_move);
+        if !next.is_in_check(color) {
+            let cur = count(ply + 1, next);
+            res += cur;
+            if ply == 0 {
+                println!(" : {}", cur);
+            }
+        }
+    }
+    res
+}
 
-    println!("{:#?}", cur.get_moves(board::PlayerColor::White));
-    //println!("{}", cur.is_in_check(cur.white, cur.black));
+fn main() {
+    let cur = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+    println!("{}", count(0, cur));
+    //println!("{}", cur.get_moves(PlayerColor::Black).len());
 }

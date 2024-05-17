@@ -70,10 +70,10 @@ impl Square {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ChessMove {
-    origin: Square,
-    target: Square,
+    pub origin: Square,
+    pub target: Square,
 }
 
 //make it index arrays of size 2
@@ -615,7 +615,7 @@ impl Board {
 
             //left capture
 
-            let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
+            let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let origin = Square::from_id(shift).unwrap();
@@ -631,8 +631,7 @@ impl Board {
             }
 
             //right capture
-
-            let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
+            let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let origin = Square::from_id(shift).unwrap();
@@ -683,7 +682,7 @@ impl Board {
 
             //left capture
 
-            let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
+            let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let origin = Square::from_id(shift).unwrap();
@@ -700,7 +699,7 @@ impl Board {
 
             //right capture
 
-            let mut pieces = pawns & 0xFEFEFEFEFEFEFEFE;
+            let mut pieces = pawns & 0x7F7F7F7F7F7F7F7F;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
                 let origin = Square::from_id(shift).unwrap();
@@ -738,6 +737,10 @@ impl Board {
 
         for id in [0, 2] {
             let blockers = lookup::RAY_MOVES[id][square as usize] & occupied;
+
+            if blockers == 0 {
+                continue;
+            }
 
             if (1 << (63 - blockers.leading_zeros())) & enemy_mask.0 & (self.rook.0 | self.queen.0)
                 > 0
@@ -950,12 +953,12 @@ impl Board {
         }
     }
 
-    pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
-        //does not consider en passant and castling
-        let mut new_board = self.clone();
-        let piece = self.get_piece(chess_move.origin).unwrap();
-        new_board.set_piece(piece.0, piece.1, chess_move.target);
-        new_board.remove_piece(chess_move.origin);
-        !new_board.is_in_check(piece.1)
-    }
+    // pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
+    //     //does not consider en passant and castling
+    //     let mut new_board = self.clone();
+    //     let piece = self.get_piece(chess_move.origin).unwrap();
+    //     new_board.set_piece(piece.0, piece.1, chess_move.target);
+    //     new_board.remove_piece(chess_move.origin);
+    //     !new_board.is_in_check(piece.1)
+    // }
 }
