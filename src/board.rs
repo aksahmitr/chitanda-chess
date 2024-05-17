@@ -867,7 +867,7 @@ impl Board {
         false
     }
 
-    fn can_castle_kingside(&self, color: PlayerColor) -> bool {
+    pub fn can_castle_kingside(&self, color: PlayerColor) -> bool {
         if color == PlayerColor::White {
             if !self.white_castle_kingside {
                 return false;
@@ -887,7 +887,7 @@ impl Board {
         }
     }
 
-    fn can_castle_queenside(&self, color: PlayerColor) -> bool {
+    pub fn can_castle_queenside(&self, color: PlayerColor) -> bool {
         if color == PlayerColor::White {
             if !self.white_castle_queenside {
                 return false;
@@ -972,10 +972,10 @@ impl Board {
                     self.white_castle_queenside = false;
                 } else {
                     if chess_move.origin == Square::E8 && chess_move.target == Square::G8 {
-                        self.set_piece(Piece::Rook, PlayerColor::White, Square::F8);
+                        self.set_piece(Piece::Rook, PlayerColor::Black, Square::F8);
                         self.remove_piece(Square::H8);
                     } else if chess_move.origin == Square::E8 && chess_move.target == Square::C8 {
-                        self.set_piece(Piece::Rook, PlayerColor::White, Square::D8);
+                        self.set_piece(Piece::Rook, PlayerColor::Black, Square::D8);
                         self.remove_piece(Square::A8);
                     }
                     self.black_castle_kingside = false;
