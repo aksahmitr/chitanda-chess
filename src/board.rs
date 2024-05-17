@@ -4,7 +4,7 @@ use std::ops::Index;
 use crate::lookup;
 
 #[rustfmt::skip]
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug, PartialEq)]
 pub enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
     A7, B7, C7, D7, E7, F7, G7, H7,
@@ -84,6 +84,7 @@ pub enum PlayerColor {
 }
 
 //make it index arrays of size 6
+#[derive(PartialEq, Clone, Copy)]
 pub enum Piece {
     Pawn,
     Knight,
@@ -888,6 +889,30 @@ impl Board {
         let piece = self.get_piece(chess_move.origin).unwrap();
         self.set_piece(piece.0, piece.1, chess_move.target);
         self.remove_piece(chess_move.origin);
+
+        if piece.0 == Piece::Pawn {
+            if let Some(en_passant_square) = self.en_passant_square {
+                if en_passant_square == chess_move.target {
+                    if piece.1 == PlayerColor::White {
+                        self.remove_piece(Square::from_id(chess_move.target as u8 + 8).unwrap());
+                    } else {
+                        self.remove_piece(Square::from_id(chess_move.target as u8 - 8).unwrap());
+                    }
+                }
+            }
+            self.en_passant_square = None;
+            if (chess_move.origin as i8 - chess_move.target as i8).abs() == 16 {
+                if piece.1 == PlayerColor::White {
+                    self.en_passant_square =
+                        Some(Square::from_id(chess_move.origin as u8 - 8).unwrap());
+                } else {
+                    self.en_passant_square =
+                        Some(Square::from_id(chess_move.origin as u8 + 8).unwrap());
+                }
+            }
+        } else {
+            self.en_passant_square = None;
+        }
     }
 
     pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
