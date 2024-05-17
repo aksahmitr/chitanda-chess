@@ -38,6 +38,10 @@ fn main() {
     )
     .unwrap();
 
+    // let ans = count(0, cur.clone());
+
+    // println!("{ans}");
+
     use std::time::Instant;
     let mut avg: Duration = Duration::from_micros(0);
     for i in 0..100 {
