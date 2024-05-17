@@ -74,6 +74,7 @@ impl Square {
 pub struct ChessMove {
     pub origin: Square,
     pub target: Square,
+    pub promotion_piece: Option<Piece>,
 }
 
 //make it index arrays of size 2
@@ -368,7 +369,11 @@ impl Board {
 
                 let target = Square::from_id(shift).unwrap();
 
-                moves.push(ChessMove { origin, target });
+                moves.push(ChessMove {
+                    origin,
+                    target,
+                    promotion_piece: None,
+                });
             }
         }
     }
@@ -394,7 +399,11 @@ impl Board {
 
                 let target = Square::from_id(shift).unwrap();
 
-                moves.push(ChessMove { origin, target });
+                moves.push(ChessMove {
+                    origin,
+                    target,
+                    promotion_piece: None,
+                });
             }
         }
 
@@ -403,12 +412,14 @@ impl Board {
                 moves.push(ChessMove {
                     origin: Square::E1,
                     target: Square::G1,
+                    promotion_piece: None,
                 });
             }
             if self.can_castle_queenside(PlayerColor::White) {
                 moves.push(ChessMove {
                     origin: Square::E1,
                     target: Square::C1,
+                    promotion_piece: None,
                 });
             }
         } else {
@@ -416,12 +427,14 @@ impl Board {
                 moves.push(ChessMove {
                     origin: Square::E8,
                     target: Square::G8,
+                    promotion_piece: None,
                 });
             }
             if self.can_castle_queenside(PlayerColor::Black) {
                 moves.push(ChessMove {
                     origin: Square::E8,
                     target: Square::C8,
+                    promotion_piece: None,
                 });
             }
         }
@@ -456,7 +469,11 @@ impl Board {
 
                     let target = Square::from_id(shift).unwrap();
 
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
             }
 
@@ -477,7 +494,11 @@ impl Board {
 
                     let target = Square::from_id(shift).unwrap();
 
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
             }
         }
@@ -512,7 +533,11 @@ impl Board {
 
                     let target = Square::from_id(shift).unwrap();
 
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
             }
 
@@ -533,7 +558,11 @@ impl Board {
 
                     let target = Square::from_id(shift).unwrap();
 
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
             }
         }
@@ -568,7 +597,11 @@ impl Board {
 
                     let target = Square::from_id(shift).unwrap();
 
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
             }
 
@@ -589,7 +622,11 @@ impl Board {
 
                     let target = Square::from_id(shift).unwrap();
 
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
             }
         }
@@ -619,7 +656,34 @@ impl Board {
 
                 let target = Square::from_id(shift - 8).unwrap();
                 if ((1 << shift) >> 8) & occupied == 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift - 8 < 8 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -636,7 +700,11 @@ impl Board {
                 let target = Square::from_id(shift - 16).unwrap();
 
                 if (((1 << shift) >> 8) | ((1 << shift) >> 16)) & occupied == 0 {
-                    moves.push(ChessMove { origin, target });
+                    moves.push(ChessMove {
+                        origin,
+                        target,
+                        promotion_piece: None,
+                    });
                 }
 
                 pieces ^= 1 << shift;
@@ -653,7 +721,34 @@ impl Board {
                 let target = Square::from_id(shift - 9).unwrap();
 
                 if (1 << (shift - 9)) & enemy_mask > 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift - 8 < 8 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -669,7 +764,34 @@ impl Board {
                 let target = Square::from_id(shift - 7).unwrap();
 
                 if (1 << (shift - 7)) & enemy_mask > 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift - 8 < 8 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -686,7 +808,34 @@ impl Board {
 
                 let target = Square::from_id(shift + 8).unwrap();
                 if ((1 << shift) << 8) & occupied == 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift + 8 > 55 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -703,7 +852,34 @@ impl Board {
                 let target = Square::from_id(shift + 16).unwrap();
 
                 if (((1 << shift) << 8) | ((1 << shift) << 16)) & occupied == 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift + 8 > 55 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -720,7 +896,34 @@ impl Board {
                 let target = Square::from_id(shift + 7).unwrap();
 
                 if (1 << (shift + 7)) & enemy_mask > 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift + 8 > 55 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -737,7 +940,34 @@ impl Board {
                 let target = Square::from_id(shift + 9).unwrap();
 
                 if (1 << (shift + 9)) & enemy_mask > 0 {
-                    moves.push(ChessMove { origin, target });
+                    if shift + 8 > 55 {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Queen),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Rook),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Knight),
+                        });
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: Some(Piece::Bishop),
+                        });
+                    } else {
+                        moves.push(ChessMove {
+                            origin,
+                            target,
+                            promotion_piece: None,
+                        });
+                    }
                 }
 
                 pieces ^= 1 << shift;
@@ -824,17 +1054,17 @@ impl Board {
         let mut mask: u64 = 0;
 
         if color == PlayerColor::White {
-            if square as u8 >= 9 {
+            if square as u8 >= 9 && ((square as u8 & 0b111) > 0) {
                 mask |= 1 << (square as u8 - 9);
             }
-            if square as u8 >= 7 {
+            if square as u8 >= 7 && (((square as u8 + 1) & 0b111) > 0) {
                 mask |= 1 << (square as u8 - 7);
             }
         } else {
-            if square as u8 + 9 < 64 {
+            if square as u8 + 9 < 64 && (((square as u8 + 1) & 0b111) > 0) {
                 mask |= 1 << (square as u8 + 9);
             }
-            if square as u8 + 7 < 64 {
+            if square as u8 + 7 < 64 && ((square as u8 & 0b111) > 0) {
                 mask |= 1 << (square as u8 + 7);
             }
         }
@@ -937,7 +1167,30 @@ impl Board {
         self.set_piece(piece.0, piece.1, chess_move.target);
         self.remove_piece(chess_move.origin);
 
+        match chess_move.target {
+            Square::A1 => {
+                self.white_castle_queenside = false;
+            }
+            Square::H1 => {
+                self.white_castle_kingside = false;
+            }
+            Square::A8 => {
+                self.black_castle_queenside = false;
+            }
+            Square::H8 => {
+                self.black_castle_kingside = false;
+            }
+            _ => (),
+        }
+
         if piece.0 == Piece::Pawn {
+            if ((chess_move.target as u8) < 8) || ((chess_move.target as u8) > 55) {
+                self.set_piece(
+                    chess_move.promotion_piece.unwrap(),
+                    piece.1,
+                    chess_move.target,
+                );
+            }
             if let Some(en_passant_square) = self.en_passant_square {
                 if en_passant_square == chess_move.target {
                     if piece.1 == PlayerColor::White {
@@ -948,11 +1201,13 @@ impl Board {
                 }
             }
             self.en_passant_square = None;
-            if (chess_move.origin as i8 - chess_move.target as i8).abs() == 16 {
-                if piece.1 == PlayerColor::White {
+            if piece.1 == PlayerColor::White {
+                if (chess_move.origin as i8 - chess_move.target as i8).abs() == 16 {
                     self.en_passant_square =
                         Some(Square::from_id(chess_move.origin as u8 - 8).unwrap());
-                } else {
+                }
+            } else {
+                if (chess_move.origin as i8 - chess_move.target as i8).abs() == 16 {
                     self.en_passant_square =
                         Some(Square::from_id(chess_move.origin as u8 + 8).unwrap());
                 }
