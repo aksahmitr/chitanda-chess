@@ -33,10 +33,12 @@ fn count(ply: u8, board: Board) -> u64 {
 }
 
 fn main() {
-    let cur = Board::from_fen(
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ",
-    )
-    .unwrap();
+    //r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
+    let cur =
+        Board::from_fen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10")
+            .unwrap();
+
+    // println!("{:#?}", cur.get_moves(PlayerColor::White));
 
     // let ans = count(0, cur.clone());
 
@@ -49,7 +51,7 @@ fn main() {
         let ans = count(0, cur.clone());
         let elapsed = now.elapsed();
         avg += elapsed;
-        println!("{}/100", i + 1);
+        println!("{}/100 {:.2?}", i + 1, elapsed);
     }
     avg /= 100;
     println!("Average Time taken: {:.2?}", avg);

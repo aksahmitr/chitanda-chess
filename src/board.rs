@@ -580,7 +580,7 @@ impl Board {
         }
     }
 
-    fn get_rook_moves(
+    pub fn get_rook_moves(
         &self,
         moves: &mut Vec<ChessMove>,
         player_mask: Bitboard,
@@ -600,7 +600,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= enemy_mask & ((1 << (63 - blockers.leading_zeros())) as u64);
+                    mask |= enemy_mask & (1u64 << (63 - blockers.leading_zeros()));
                 }
 
                 while mask > 0 {
@@ -625,7 +625,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= enemy_mask & (1 << blockers.trailing_zeros());
+                    mask |= enemy_mask & (1u64 << blockers.trailing_zeros());
                 }
 
                 while mask > 0 {
@@ -664,7 +664,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= enemy_mask & ((1 << (63 - blockers.leading_zeros())) as u64);
+                    mask |= enemy_mask & (1u64 << (63 - blockers.leading_zeros()));
                 }
 
                 while mask > 0 {
@@ -689,7 +689,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= enemy_mask & (1 << blockers.trailing_zeros());
+                    mask |= enemy_mask & (1u64 << blockers.trailing_zeros());
                 }
 
                 while mask > 0 {
@@ -728,7 +728,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= enemy_mask & (1 << (63 - blockers.leading_zeros()));
+                    mask |= enemy_mask & (1u64 << (63 - blockers.leading_zeros()));
                 }
 
                 while mask > 0 {
@@ -753,12 +753,12 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= enemy_mask & (1 << blockers.trailing_zeros());
+                    mask |= enemy_mask & (1u64 << blockers.trailing_zeros());
                 }
 
                 while mask > 0 {
                     let shift = mask.trailing_zeros() as u8;
-                    mask ^= 1 << shift;
+                    mask ^= 1u64 << shift;
 
                     let target = Square::try_from(shift).unwrap();
 
@@ -782,7 +782,7 @@ impl Board {
         let pawns = player_mask & self.piece_board[Piece::Pawn];
         let en_passant_mask = self
             .en_passant_square
-            .map_or(0, |square| ((1 as u64) << square as u8));
+            .map_or(0, |square| (1u64 << square as u8));
         let enemy_mask = enemy_mask | en_passant_mask;
         if color == PlayerColor::White {
             //single push
@@ -795,7 +795,7 @@ impl Board {
                 //will break if on final rank
 
                 let target = Square::try_from(shift - 8).unwrap();
-                if ((1 << shift) >> 8) & occupied == 0 {
+                if ((1u64 << shift) >> 8) & occupied == 0 {
                     if shift - 8 < 8 {
                         moves.push(ChessMove {
                             origin,
@@ -839,7 +839,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::try_from(shift - 16).unwrap();
 
-                if (((1 << shift) >> 8) | ((1 << shift) >> 16)) & occupied == 0 {
+                if (((1u64 << shift) >> 8) | ((1u64 << shift) >> 16)) & occupied == 0 {
                     moves.push(ChessMove {
                         origin,
                         target,
@@ -847,7 +847,7 @@ impl Board {
                     });
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
 
             //left capture
@@ -860,7 +860,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::try_from(shift - 9).unwrap();
 
-                if (1 << (shift - 9)) & enemy_mask > 0 {
+                if (1u64 << (shift - 9)) & enemy_mask > 0 {
                     if shift - 8 < 8 {
                         moves.push(ChessMove {
                             origin,
@@ -891,7 +891,7 @@ impl Board {
                     }
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
 
             //right capture
@@ -903,7 +903,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::try_from(shift - 7).unwrap();
 
-                if (1 << (shift - 7)) & enemy_mask > 0 {
+                if (1u64 << (shift - 7)) & enemy_mask > 0 {
                     if shift - 8 < 8 {
                         moves.push(ChessMove {
                             origin,
@@ -934,7 +934,7 @@ impl Board {
                     }
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
         } else {
             //single push
@@ -947,7 +947,7 @@ impl Board {
                 //will break if on final rank
 
                 let target = Square::try_from(shift + 8).unwrap();
-                if ((1 << shift) << 8) & occupied == 0 {
+                if ((1u64 << shift) << 8) & occupied == 0 {
                     if shift + 8 > 55 {
                         moves.push(ChessMove {
                             origin,
@@ -978,7 +978,7 @@ impl Board {
                     }
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
 
             //double push
@@ -991,7 +991,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::try_from(shift + 16).unwrap();
 
-                if (((1 << shift) << 8) | ((1 << shift) << 16)) & occupied == 0 {
+                if (((1u64 << shift) << 8) | ((1u64 << shift) << 16)) & occupied == 0 {
                     if shift + 8 > 55 {
                         moves.push(ChessMove {
                             origin,
@@ -1022,7 +1022,7 @@ impl Board {
                     }
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
 
             //left capture
@@ -1035,7 +1035,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::try_from(shift + 7).unwrap();
 
-                if (1 << (shift + 7)) & enemy_mask > 0 {
+                if (1u64 << (shift + 7)) & enemy_mask > 0 {
                     if shift + 8 > 55 {
                         moves.push(ChessMove {
                             origin,
@@ -1066,7 +1066,7 @@ impl Board {
                     }
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
 
             //right capture
@@ -1079,7 +1079,7 @@ impl Board {
                 //will break if on final rank
                 let target = Square::try_from(shift + 9).unwrap();
 
-                if (1 << (shift + 9)) & enemy_mask > 0 {
+                if (1u64 << (shift + 9)) & enemy_mask > 0 {
                     if shift + 8 > 55 {
                         moves.push(ChessMove {
                             origin,
@@ -1110,7 +1110,7 @@ impl Board {
                     }
                 }
 
-                pieces ^= 1 << shift;
+                pieces ^= 1u64 << shift;
             }
         }
     }
@@ -1136,7 +1136,7 @@ impl Board {
             }
 
             if enemy_mask
-                & (1 << (63 - blockers.leading_zeros()))
+                & (1u64 << (63 - blockers.leading_zeros()))
                 & (self.piece_board[Piece::Rook] | self.piece_board[Piece::Queen])
                 > 0
             {
@@ -1152,7 +1152,7 @@ impl Board {
             }
 
             if enemy_mask
-                & (1 << blockers.trailing_zeros())
+                & (1u64 << blockers.trailing_zeros())
                 & (self.piece_board[Piece::Rook] | self.piece_board[Piece::Queen])
                 > 0
             {
@@ -1168,7 +1168,7 @@ impl Board {
             }
 
             if enemy_mask
-                & (1 << (63 - blockers.leading_zeros()))
+                & (1u64 << (63 - blockers.leading_zeros()))
                 & (self.piece_board[Piece::Bishop] | self.piece_board[Piece::Queen])
                 > 0
             {
@@ -1184,7 +1184,7 @@ impl Board {
             }
 
             if enemy_mask
-                & (1 << blockers.trailing_zeros())
+                & (1u64 << blockers.trailing_zeros())
                 & (self.piece_board[Piece::Bishop] | self.piece_board[Piece::Queen])
                 > 0
             {
@@ -1198,17 +1198,17 @@ impl Board {
 
         if color == PlayerColor::White {
             if square as u8 >= 9 && ((square as u8 & 0b111) > 0) {
-                mask |= 1 << (square as u8 - 9);
+                mask |= 1u64 << (square as u8 - 9);
             }
             if square as u8 >= 7 && (((square as u8 + 1) & 0b111) > 0) {
-                mask |= 1 << (square as u8 - 7);
+                mask |= 1u64 << (square as u8 - 7);
             }
         } else {
             if square as u8 + 9 < 64 && (((square as u8 + 1) & 0b111) > 0) {
-                mask |= 1 << (square as u8 + 9);
+                mask |= 1u64 << (square as u8 + 9);
             }
             if square as u8 + 7 < 64 && ((square as u8 & 0b111) > 0) {
-                mask |= 1 << (square as u8 + 7);
+                mask |= 1u64 << (square as u8 + 7);
             }
         }
 
@@ -1225,7 +1225,7 @@ impl Board {
         let mut pieces = self.piece_board[Piece::King] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            pieces ^= 1 << shift;
+            pieces ^= 1u64 << shift;
             if self.is_attacked(Square::try_from(shift).unwrap(), color) {
                 return true;
             }
