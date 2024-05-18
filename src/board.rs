@@ -1,5 +1,7 @@
 use core::fmt;
-use std::ops::{Index, IndexMut};
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Index, IndexMut, Not,
+};
 
 use crate::lookup;
 
@@ -142,6 +144,7 @@ impl IndexMut<Piece> for [Bitboard; 6] {
         &mut self[index as usize]
     }
 }
+
 //make it index arrays of size 6
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Piece {
@@ -156,6 +159,12 @@ pub enum Piece {
 #[derive(Clone, Copy, Debug)]
 pub struct Bitboard(pub u64);
 
+impl From<u64> for Bitboard {
+    fn from(value: u64) -> Self {
+        Bitboard(value)
+    }
+}
+
 impl fmt::Display for Bitboard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for i in 0..8 {
@@ -166,6 +175,91 @@ impl fmt::Display for Bitboard {
             write!(f, "\n")?;
         }
         Ok(())
+    }
+}
+
+impl BitAnd for Bitboard {
+    type Output = u64;
+    fn bitand(self, rhs: Bitboard) -> Self::Output {
+        self.0 & rhs.0
+    }
+}
+
+impl Not for Bitboard {
+    type Output = u64;
+    fn not(self) -> Self::Output {
+        !self.0
+    }
+}
+
+impl BitAnd<u64> for Bitboard {
+    type Output = u64;
+    fn bitand(self, rhs: u64) -> Self::Output {
+        self.0 & rhs
+    }
+}
+
+impl BitAndAssign for Bitboard {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = Bitboard(*self & rhs);
+    }
+}
+
+impl BitAndAssign<u64> for Bitboard {
+    fn bitand_assign(&mut self, rhs: u64) {
+        *self = Bitboard(*self & rhs);
+    }
+}
+
+impl BitXor for Bitboard {
+    type Output = u64;
+    fn bitxor(self, rhs: Bitboard) -> Self::Output {
+        self.0 ^ rhs.0
+    }
+}
+
+impl BitXor<u64> for Bitboard {
+    type Output = u64;
+    fn bitxor(self, rhs: u64) -> Self::Output {
+        self.0 ^ rhs
+    }
+}
+
+impl BitXorAssign for Bitboard {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = Bitboard(*self ^ rhs);
+    }
+}
+
+impl BitXorAssign<u64> for Bitboard {
+    fn bitxor_assign(&mut self, rhs: u64) {
+        *self = Bitboard(*self ^ rhs);
+    }
+}
+
+impl BitOr for Bitboard {
+    type Output = u64;
+    fn bitor(self, rhs: Bitboard) -> Self::Output {
+        self.0 | rhs.0
+    }
+}
+
+impl BitOr<u64> for Bitboard {
+    type Output = u64;
+    fn bitor(self, rhs: u64) -> Self::Output {
+        self.0 | rhs
+    }
+}
+
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = Bitboard(*self | rhs);
+    }
+}
+
+impl BitOrAssign<u64> for Bitboard {
+    fn bitor_assign(&mut self, rhs: u64) {
+        *self = Bitboard(*self | rhs);
     }
 }
 
@@ -197,7 +291,7 @@ impl fmt::Display for Board {
                 write!(
                     f,
                     "{} ",
-                    if self.color_board[PlayerColor::White].0 & pos > 0 {
+                    if self.color_board[PlayerColor::White] & pos > 0 {
                         1
                     } else {
                         0
@@ -213,7 +307,7 @@ impl fmt::Display for Board {
                 write!(
                     f,
                     "{} ",
-                    if self.color_board[PlayerColor::Black].0 & pos > 0 {
+                    if self.color_board[PlayerColor::Black] & pos > 0 {
                         1
                     } else {
                         0
@@ -301,8 +395,8 @@ impl Board {
     fn set_piece(&mut self, piece: Piece, color: PlayerColor, square: Square) {
         self.remove_piece(square);
         let pos: u64 = 1 << square as u8;
-        self.piece_board[piece].0 |= pos;
-        self.color_board[color].0 |= pos;
+        self.piece_board[piece] |= pos;
+        self.color_board[color] |= pos;
     }
 
     fn remove_piece(&mut self, square: Square) {
@@ -317,13 +411,13 @@ impl Board {
 
     fn get_piece(&self, square: Square) -> Option<(Piece, PlayerColor)> {
         let pos: u64 = 1 << square as u8;
-        let color = if pos & self.color_board[PlayerColor::White].0 > 0 {
+        let color = if self.color_board[PlayerColor::White] & pos > 0 {
             PlayerColor::White
         } else {
             PlayerColor::Black
         };
         for piece in 0..6 {
-            if self.piece_board[piece].0 & pos > 0 {
+            if self.piece_board[piece] & pos > 0 {
                 return Some((Piece::try_from(piece).unwrap(), color));
             }
         }
@@ -401,13 +495,13 @@ impl Board {
         player_mask: Bitboard,
         enemy_mask: Bitboard,
     ) {
-        let mut pieces = self.piece_board[Piece::Knight].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::Knight] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
 
             let origin = Square::try_from(shift).unwrap();
-            let mut mask = lookup::KNIGHT_MOVES[origin] & !player_mask.0;
+            let mut mask = lookup::KNIGHT_MOVES[origin] & !player_mask;
 
             while mask > 0 {
                 let shift = mask.trailing_zeros() as u8;
@@ -431,13 +525,13 @@ impl Board {
         enemy_mask: Bitboard,
         color: PlayerColor,
     ) {
-        let mut pieces = self.piece_board[Piece::King].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::King] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
 
             let origin = Square::try_from(shift).unwrap();
-            let mut mask = lookup::KING_MOVES[origin] & !player_mask.0;
+            let mut mask = lookup::KING_MOVES[origin] & !player_mask;
 
             while mask > 0 {
                 let shift = mask.trailing_zeros() as u8;
@@ -492,10 +586,10 @@ impl Board {
         player_mask: Bitboard,
         enemy_mask: Bitboard,
     ) {
-        let mut pieces = self.piece_board[Piece::Rook].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::Rook] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
+            let occupied = player_mask | enemy_mask;
             pieces ^= 1 << shift;
 
             for id in [0, 2] {
@@ -506,7 +600,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                    mask |= enemy_mask & ((1 << (63 - blockers.leading_zeros())) as u64);
                 }
 
                 while mask > 0 {
@@ -531,7 +625,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1 << blockers.trailing_zeros()) & enemy_mask.0;
+                    mask |= enemy_mask & (1 << blockers.trailing_zeros());
                 }
 
                 while mask > 0 {
@@ -556,10 +650,10 @@ impl Board {
         player_mask: Bitboard,
         enemy_mask: Bitboard,
     ) {
-        let mut pieces = self.piece_board[Piece::Bishop].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::Bishop] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
+            let occupied = player_mask | enemy_mask;
             pieces ^= 1 << shift;
 
             for id in [1, 3] {
@@ -570,7 +664,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                    mask |= enemy_mask & ((1 << (63 - blockers.leading_zeros())) as u64);
                 }
 
                 while mask > 0 {
@@ -595,7 +689,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1 << blockers.trailing_zeros()) & enemy_mask.0;
+                    mask |= enemy_mask & (1 << blockers.trailing_zeros());
                 }
 
                 while mask > 0 {
@@ -620,10 +714,10 @@ impl Board {
         player_mask: Bitboard,
         enemy_mask: Bitboard,
     ) {
-        let mut pieces = self.piece_board[Piece::Queen].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::Queen] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
+            let occupied = player_mask | enemy_mask;
             pieces ^= 1 << shift;
 
             for id in 0..4 {
@@ -634,7 +728,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                    mask |= enemy_mask & (1 << (63 - blockers.leading_zeros()));
                 }
 
                 while mask > 0 {
@@ -659,7 +753,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1 << blockers.trailing_zeros()) & enemy_mask.0;
+                    mask |= enemy_mask & (1 << blockers.trailing_zeros());
                 }
 
                 while mask > 0 {
@@ -685,17 +779,17 @@ impl Board {
         enemy_mask: Bitboard,
         color: PlayerColor,
     ) {
-        let pawns = player_mask.0 & self.piece_board[Piece::Pawn].0;
+        let pawns = player_mask & self.piece_board[Piece::Pawn];
         let en_passant_mask = self
             .en_passant_square
             .map_or(0, |square| ((1 as u64) << square as u8));
-        let enemy_mask = enemy_mask.0 | en_passant_mask;
+        let enemy_mask = enemy_mask | en_passant_mask;
         if color == PlayerColor::White {
             //single push
             let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -739,7 +833,7 @@ impl Board {
             let mut pieces = pawns & 0xFF000000000000;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -847,7 +941,7 @@ impl Board {
             let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -891,7 +985,7 @@ impl Board {
             let mut pieces = pawns & 0xFF00;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -1024,14 +1118,12 @@ impl Board {
     pub fn is_attacked(&self, square: Square, color: PlayerColor) -> bool {
         let player_mask: Bitboard = self.color_board[color];
         let enemy_mask: Bitboard = self.color_board[color.other()];
-        let occupied = player_mask.0 | enemy_mask.0;
-        if lookup::KING_MOVES[square as usize] & enemy_mask.0 & self.piece_board[Piece::King].0 > 0
-        {
+        let occupied = player_mask | enemy_mask;
+        if enemy_mask & self.piece_board[Piece::King] & lookup::KING_MOVES[square as usize] > 0 {
             return true;
         };
 
-        if lookup::KNIGHT_MOVES[square as usize] & enemy_mask.0 & self.piece_board[Piece::Knight].0
-            > 0
+        if enemy_mask & self.piece_board[Piece::Knight] & lookup::KNIGHT_MOVES[square as usize] > 0
         {
             return true;
         };
@@ -1043,9 +1135,9 @@ impl Board {
                 continue;
             }
 
-            if (1 << (63 - blockers.leading_zeros()))
-                & enemy_mask.0
-                & (self.piece_board[Piece::Rook].0 | self.piece_board[Piece::Queen].0)
+            if enemy_mask
+                & (1 << (63 - blockers.leading_zeros()))
+                & (self.piece_board[Piece::Rook] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1059,9 +1151,9 @@ impl Board {
                 continue;
             }
 
-            if (1 << blockers.trailing_zeros())
-                & enemy_mask.0
-                & (self.piece_board[Piece::Rook].0 | self.piece_board[Piece::Queen].0)
+            if enemy_mask
+                & (1 << blockers.trailing_zeros())
+                & (self.piece_board[Piece::Rook] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1075,9 +1167,9 @@ impl Board {
                 continue;
             }
 
-            if (1 << (63 - blockers.leading_zeros()))
-                & enemy_mask.0
-                & (self.piece_board[Piece::Bishop].0 | self.piece_board[Piece::Queen].0)
+            if enemy_mask
+                & (1 << (63 - blockers.leading_zeros()))
+                & (self.piece_board[Piece::Bishop] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1091,9 +1183,9 @@ impl Board {
                 continue;
             }
 
-            if (1 << blockers.trailing_zeros())
-                & enemy_mask.0
-                & (self.piece_board[Piece::Bishop].0 | self.piece_board[Piece::Queen].0)
+            if enemy_mask
+                & (1 << blockers.trailing_zeros())
+                & (self.piece_board[Piece::Bishop] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1120,7 +1212,7 @@ impl Board {
             }
         }
 
-        if mask & enemy_mask.0 & self.piece_board[Piece::Pawn].0 > 0 {
+        if enemy_mask & self.piece_board[Piece::Pawn] & mask > 0 {
             return true;
         }
         false
@@ -1130,7 +1222,7 @@ impl Board {
         let player_mask = self.color_board[color];
         let enemy_mask = self.color_board[color.other()];
 
-        let mut pieces = self.piece_board[Piece::King].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::King] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1 << shift;
@@ -1149,8 +1241,7 @@ impl Board {
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::F1, color)
                 || self.is_attacked(Square::G1, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0x6000000000000000
                     == 0)
         } else {
@@ -1160,8 +1251,7 @@ impl Board {
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::F8, color)
                 || self.is_attacked(Square::G8, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0x60
                     == 0)
         }
@@ -1175,8 +1265,7 @@ impl Board {
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::D1, color)
                 || self.is_attacked(Square::C1, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0xE00000000000000
                     == 0)
         } else {
@@ -1186,8 +1275,7 @@ impl Board {
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::D8, color)
                 || self.is_attacked(Square::C8, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0xE
                     == 0)
         }
