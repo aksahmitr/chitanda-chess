@@ -44,13 +44,13 @@ fn main() {
 
     use std::time::Instant;
     let mut avg: Duration = Duration::from_micros(0);
-    for i in 0..100 {
+    for i in 0..10 {
         let now = Instant::now();
         let ans = count(0, cur.clone());
         let elapsed = now.elapsed();
         avg += elapsed;
-        println!("{}/100", i + 1);
+        println!("{}/10", i + 1);
     }
-    avg /= 100;
+    avg /= 10;
     println!("Average Time taken: {:.2?}", avg);
 }
