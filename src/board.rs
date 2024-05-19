@@ -313,13 +313,13 @@ impl Board {
     }
 
     fn set_piece(&mut self, piece: Piece, color: PlayerColor, square: Square) {
-        self.remove_piece(square);
+        self.remove_any_piece(square);
         let pos: u64 = 1u64 << square as u8;
         self.piece_board[piece] |= pos;
         self.color_board[color] |= pos;
     }
 
-    fn remove_piece(&mut self, square: Square) {
+    fn remove_any_piece(&mut self, square: Square) {
         let pos: u64 = !(1u64 << square as u8);
         for board in self.piece_board.iter_mut() {
             *board &= pos;
@@ -327,6 +327,11 @@ impl Board {
         for board in self.color_board.iter_mut() {
             *board &= pos;
         }
+    }
+
+    fn remove_piece(&mut self, square: Square, piece: Piece) {
+        let pos: u64 = !(1u64 << square as u8);
+        self.piece_board[piece] &= pos;
     }
 
     fn get_piece(&self, square: Square) -> Option<(Piece, PlayerColor)> {
@@ -1188,7 +1193,7 @@ impl Board {
     pub fn make_move(&mut self, chess_move: ChessMove) {
         let piece = self.get_piece(chess_move.origin).unwrap();
         self.set_piece(piece.0, piece.1, chess_move.target);
-        self.remove_piece(chess_move.origin);
+        self.remove_any_piece(chess_move.origin);
 
         match chess_move.target {
             Square::A1 => {
@@ -1217,9 +1222,13 @@ impl Board {
             if let Some(en_passant_square) = self.en_passant_square {
                 if en_passant_square == chess_move.target {
                     if piece.1 == PlayerColor::White {
-                        self.remove_piece(Square::try_from(chess_move.target as u8 + 8).unwrap());
+                        self.remove_any_piece(
+                            Square::try_from(chess_move.target as u8 + 8).unwrap(),
+                        );
                     } else {
-                        self.remove_piece(Square::try_from(chess_move.target as u8 - 8).unwrap());
+                        self.remove_any_piece(
+                            Square::try_from(chess_move.target as u8 - 8).unwrap(),
+                        );
                     }
                 }
             }
@@ -1241,20 +1250,20 @@ impl Board {
                 if piece.1 == PlayerColor::White {
                     if chess_move.origin == Square::E1 && chess_move.target == Square::G1 {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::F1);
-                        self.remove_piece(Square::H1);
+                        self.remove_any_piece(Square::H1);
                     } else if chess_move.origin == Square::E1 && chess_move.target == Square::C1 {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::D1);
-                        self.remove_piece(Square::A1);
+                        self.remove_any_piece(Square::A1);
                     }
                     self.white_castle_kingside = false;
                     self.white_castle_queenside = false;
                 } else {
                     if chess_move.origin == Square::E8 && chess_move.target == Square::G8 {
                         self.set_piece(Piece::Rook, PlayerColor::Black, Square::F8);
-                        self.remove_piece(Square::H8);
+                        self.remove_any_piece(Square::H8);
                     } else if chess_move.origin == Square::E8 && chess_move.target == Square::C8 {
                         self.set_piece(Piece::Rook, PlayerColor::Black, Square::D8);
-                        self.remove_piece(Square::A8);
+                        self.remove_any_piece(Square::A8);
                     }
                     self.black_castle_kingside = false;
                     self.black_castle_queenside = false;
@@ -1282,11 +1291,18 @@ impl Board {
 
     pub fn undo_move(&mut self) {
         let del = self.delta.pop().unwrap();
-        self.set_piece(
-            del.moved_piece,
-            self.active_color.other(),
-            del.chess_move.origin,
-        );
+        self.active_color = self.active_color.other();
+        self.set_piece(del.moved_piece, self.active_color, del.chess_move.origin);
+        if let Some(captured_piece) = del.captured_piece {
+            self.set_piece(
+                captured_piece,
+                self.active_color.other(),
+                del.chess_move.target,
+            );
+        } else {
+            self.remove_piece(del.chess_move.target, del.moved_piece);
+        }
+        //account for castling, promotion, en passant
     }
 
     // pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
@@ -1294,7 +1310,7 @@ impl Board {
     //     let mut new_board = self.clone();
     //     let piece = self.get_piece(chess_move.origin).unwrap();
     //     new_board.set_piece(piece, piece.1, chess_move.target);
-    //     new_board.remove_piece(chess_move.origin);
+    //     new_board.remove_any_piece(chess_move.origin);
     //     !new_board.is_in_check(piece.1)
     // }
 }
