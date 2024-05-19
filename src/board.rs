@@ -72,6 +72,7 @@ impl Square {
     }
 }
 
+//add moved piece here
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChessMove {
     pub origin: Square,
@@ -166,9 +167,21 @@ pub enum Piece {
 //     }
 // }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
+struct DeltaBoard {
+    white_castle_kingside: bool,
+    white_castle_queenside: bool,
+    black_castle_kingside: bool,
+    black_castle_queenside: bool,
+    en_passant_square: Option<Square>,
+    captured_piece: Option<Piece>,
+    moved_piece: Piece,
+    chess_move: ChessMove,
+}
+
+#[derive(Debug, Clone)]
 pub struct Board {
-    active_color: PlayerColor,
+    pub active_color: PlayerColor,
 
     white_castle_kingside: bool,
     white_castle_queenside: bool,
@@ -183,6 +196,8 @@ pub struct Board {
     color_board: [u64; 2],
 
     piece_board: [u64; 6],
+
+    delta: Vec<DeltaBoard>,
 }
 
 impl fmt::Display for Board {
@@ -292,6 +307,8 @@ impl Board {
             color_board: [0; 2],
 
             piece_board: [0; 6],
+
+            delta: Vec::new(),
         }
     }
 
@@ -416,13 +433,7 @@ impl Board {
         }
     }
 
-    fn get_king_moves(
-        &self,
-        moves: &mut Vec<ChessMove>,
-        player_mask: u64,
-        enemy_mask: u64,
-        color: PlayerColor,
-    ) {
+    fn get_king_moves(&self, moves: &mut Vec<ChessMove>, player_mask: u64, enemy_mask: u64) {
         let mut pieces = self.piece_board[Piece::King] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
@@ -445,7 +456,7 @@ impl Board {
             }
         }
 
-        if color == PlayerColor::White {
+        if self.active_color == PlayerColor::White {
             if self.can_castle_kingside(PlayerColor::White) {
                 moves.push(ChessMove {
                     origin: Square::E1,
@@ -655,19 +666,13 @@ impl Board {
         }
     }
 
-    fn get_pawn_moves(
-        &self,
-        moves: &mut Vec<ChessMove>,
-        player_mask: u64,
-        enemy_mask: u64,
-        color: PlayerColor,
-    ) {
+    fn get_pawn_moves(&self, moves: &mut Vec<ChessMove>, player_mask: u64, enemy_mask: u64) {
         let pawns = player_mask & self.piece_board[Piece::Pawn];
         let en_passant_mask = self
             .en_passant_square
             .map_or(0, |square| ((1 as u64) << square as u8));
         let enemy_mask = enemy_mask | en_passant_mask;
-        if color == PlayerColor::White {
+        if self.active_color == PlayerColor::White {
             //single push
             let mut pieces = pawns;
             while pieces > 0 {
@@ -1164,18 +1169,18 @@ impl Board {
         }
     }
 
-    pub fn get_moves(&self, color: PlayerColor) -> Vec<ChessMove> {
-        let player_mask = self.color_board[color];
-        let enemy_mask = self.color_board[color.other()];
+    pub fn get_moves(&self) -> Vec<ChessMove> {
+        let player_mask = self.color_board[self.active_color];
+        let enemy_mask = self.color_board[self.active_color.other()];
 
         let mut moves = Vec::new();
 
         self.get_knight_moves(&mut moves, player_mask, enemy_mask);
-        self.get_king_moves(&mut moves, player_mask, enemy_mask, color);
+        self.get_king_moves(&mut moves, player_mask, enemy_mask);
         self.get_rook_moves(&mut moves, player_mask, enemy_mask);
         self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
         self.get_queen_moves(&mut moves, player_mask, enemy_mask);
-        self.get_pawn_moves(&mut moves, player_mask, enemy_mask, color);
+        self.get_pawn_moves(&mut moves, player_mask, enemy_mask);
 
         moves
     }
@@ -1272,6 +1277,16 @@ impl Board {
                 }
             }
         }
+        self.active_color = self.active_color.other();
+    }
+
+    pub fn undo_move(&mut self) {
+        let del = self.delta.pop().unwrap();
+        self.set_piece(
+            del.moved_piece,
+            self.active_color.other(),
+            del.chess_move.origin,
+        );
     }
 
     // pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
