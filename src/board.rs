@@ -3,6 +3,27 @@ use std::ops::{Index, IndexMut};
 
 use crate::lookup;
 
+#[derive(Debug, PartialEq, Clone)]
+enum CastlingState {
+    WhiteKingSide,
+    WhiteQueenSide,
+    BlackKingSide,
+    BlackQueenSide,
+}
+
+impl Index<CastlingState> for [bool; 4] {
+    type Output = bool;
+    fn index(&self, index: CastlingState) -> &Self::Output {
+        &self[index as usize]
+    }
+}
+
+impl IndexMut<CastlingState> for [bool; 4] {
+    fn index_mut(&mut self, index: CastlingState) -> &mut Self::Output {
+        &mut self[index as usize]
+    }
+}
+
 #[rustfmt::skip]
 #[derive(Clone,Copy,Debug, PartialEq)]
 pub enum Square {
@@ -78,6 +99,7 @@ pub struct ChessMove {
     pub origin: Square,
     pub target: Square,
     pub promotion_piece: Option<Piece>,
+    pub castle_type: Option<CastlingState>,
 }
 
 //make it index arrays of size 2
@@ -169,10 +191,7 @@ pub enum Piece {
 
 #[derive(Debug, Clone)]
 struct DeltaBoard {
-    white_castle_kingside: bool,
-    white_castle_queenside: bool,
-    black_castle_kingside: bool,
-    black_castle_queenside: bool,
+    castling_valid: [bool; 4],
     en_passant_square: Option<Square>,
     captured_piece: Option<Piece>,
     moved_piece: Piece,
@@ -183,10 +202,7 @@ struct DeltaBoard {
 pub struct Board {
     pub active_color: PlayerColor,
 
-    white_castle_kingside: bool,
-    white_castle_queenside: bool,
-    black_castle_kingside: bool,
-    black_castle_queenside: bool,
+    castling_valid: [bool; 4],
 
     en_passant_square: Option<Square>,
 
@@ -294,10 +310,7 @@ impl Board {
         Board {
             active_color: PlayerColor::White,
 
-            white_castle_kingside: false,
-            white_castle_queenside: false,
-            black_castle_kingside: false,
-            black_castle_queenside: false,
+            castling_valid: [false; 4],
 
             en_passant_square: None,
 
@@ -398,10 +411,10 @@ impl Board {
             _ => return Err(BoardError::InvalidFEN),
         };
 
-        board.white_castle_kingside = castling_availability.contains("K");
-        board.white_castle_queenside = castling_availability.contains("Q");
-        board.black_castle_kingside = castling_availability.contains("k");
-        board.black_castle_queenside = castling_availability.contains("q");
+        board.castling_valid[CastlingState::WhiteKingSide] = castling_availability.contains("K");
+        board.castling_valid[CastlingState::WhiteQueenSide] = castling_availability.contains("Q");
+        board.castling_valid[CastlingState::BlackKingSide] = castling_availability.contains("k");
+        board.castling_valid[CastlingState::BlackKingSide] = castling_availability.contains("q");
 
         board.en_passant_square = match en_passant_square {
             "-" => None,
@@ -433,6 +446,7 @@ impl Board {
                     origin,
                     target,
                     promotion_piece: None,
+                    castle_type: None,
                 });
             }
         }
@@ -457,38 +471,43 @@ impl Board {
                     origin,
                     target,
                     promotion_piece: None,
+                    castle_type: None,
                 });
             }
         }
 
         if self.active_color == PlayerColor::White {
-            if self.can_castle_kingside(PlayerColor::White) {
+            if self.castling_valid[CastlingState::WhiteKingSide] {
                 moves.push(ChessMove {
                     origin: Square::E1,
                     target: Square::G1,
                     promotion_piece: None,
+                    castle_type: Some(CastlingState::WhiteKingSide),
                 });
             }
-            if self.can_castle_queenside(PlayerColor::White) {
+            if self.castling_valid[CastlingState::WhiteQueenSide] {
                 moves.push(ChessMove {
                     origin: Square::E1,
                     target: Square::C1,
                     promotion_piece: None,
+                    castle_type: Some(CastlingState::WhiteQueenSide),
                 });
             }
         } else {
-            if self.can_castle_kingside(PlayerColor::Black) {
+            if self.castling_valid[CastlingState::BlackKingSide] {
                 moves.push(ChessMove {
                     origin: Square::E8,
                     target: Square::G8,
                     promotion_piece: None,
+                    castle_type: Some(CastlingState::BlackKingSide),
                 });
             }
-            if self.can_castle_queenside(PlayerColor::Black) {
+            if self.castling_valid[CastlingState::BlackQueenSide] {
                 moves.push(ChessMove {
                     origin: Square::E8,
                     target: Square::C8,
                     promotion_piece: None,
+                    castle_type: Some(CastlingState::BlackQueenSide),
                 });
             }
         }
@@ -522,6 +541,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
             }
@@ -547,6 +567,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
             }
@@ -581,6 +602,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
             }
@@ -606,6 +628,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
             }
@@ -640,6 +663,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
             }
@@ -665,6 +689,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
             }
@@ -694,27 +719,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -737,6 +767,7 @@ impl Board {
                         origin,
                         target,
                         promotion_piece: None,
+                        castle_type: None,
                     });
                 }
 
@@ -759,27 +790,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -802,27 +838,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -846,27 +887,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -890,27 +936,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -934,27 +985,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -978,27 +1034,32 @@ impl Board {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Queen),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Rook),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Knight),
+                            castle_type: None,
                         });
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: Some(Piece::Bishop),
+                            castle_type: None,
                         });
                     } else {
                         moves.push(ChessMove {
                             origin,
                             target,
                             promotion_piece: None,
+                            castle_type: None,
                         });
                     }
                 }
@@ -1126,51 +1187,47 @@ impl Board {
         false
     }
 
-    pub fn can_castle_kingside(&self, color: PlayerColor) -> bool {
-        if color == PlayerColor::White {
-            if !self.white_castle_kingside {
-                return false;
-            }
-            !(self.is_attacked(Square::E1, color)
-                || self.is_attacked(Square::F1, color)
-                || self.is_attacked(Square::G1, color))
-                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
-                    & 0x6000000000000000
-                    == 0)
-        } else {
-            if !self.black_castle_kingside {
-                return false;
-            }
-            !(self.is_attacked(Square::E8, color)
-                || self.is_attacked(Square::F8, color)
-                || self.is_attacked(Square::G8, color))
-                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
-                    & 0x60
-                    == 0)
+    pub fn can_castle(&self, state: CastlingState) -> bool {
+        if !self.castling_valid[state.clone()] {
+            return false;
         }
-    }
-
-    pub fn can_castle_queenside(&self, color: PlayerColor) -> bool {
-        if color == PlayerColor::White {
-            if !self.white_castle_queenside {
-                return false;
+        match state {
+            CastlingState::WhiteKingSide => {
+                !(self.is_attacked(Square::E1, PlayerColor::White)
+                    || self.is_attacked(Square::F1, PlayerColor::White)
+                    || self.is_attacked(Square::G1, PlayerColor::White))
+                    && ((self.color_board[PlayerColor::White]
+                        | self.color_board[PlayerColor::Black])
+                        & 0x6000000000000000
+                        == 0)
             }
-            !(self.is_attacked(Square::E1, color)
-                || self.is_attacked(Square::D1, color)
-                || self.is_attacked(Square::C1, color))
-                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
-                    & 0xE00000000000000
-                    == 0)
-        } else {
-            if !self.black_castle_queenside {
-                return false;
+            CastlingState::BlackKingSide => {
+                !(self.is_attacked(Square::E8, PlayerColor::Black)
+                    || self.is_attacked(Square::F8, PlayerColor::White)
+                    || self.is_attacked(Square::G8, PlayerColor::White))
+                    && ((self.color_board[PlayerColor::White]
+                        | self.color_board[PlayerColor::Black])
+                        & 0x60
+                        == 0)
             }
-            !(self.is_attacked(Square::E8, color)
-                || self.is_attacked(Square::D8, color)
-                || self.is_attacked(Square::C8, color))
-                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
-                    & 0xE
-                    == 0)
+            CastlingState::WhiteQueenSide => {
+                !(self.is_attacked(Square::E1, PlayerColor::White)
+                    || self.is_attacked(Square::D1, PlayerColor::White)
+                    || self.is_attacked(Square::C1, PlayerColor::White))
+                    && ((self.color_board[PlayerColor::White]
+                        | self.color_board[PlayerColor::Black])
+                        & 0xE00000000000000
+                        == 0)
+            }
+            CastlingState::BlackQueenSide => {
+                !(self.is_attacked(Square::E8, PlayerColor::Black)
+                    || self.is_attacked(Square::D8, PlayerColor::Black)
+                    || self.is_attacked(Square::C8, PlayerColor::Black))
+                    && ((self.color_board[PlayerColor::White]
+                        | self.color_board[PlayerColor::Black])
+                        & 0xE
+                        == 0)
+            }
         }
     }
 
@@ -1197,16 +1254,16 @@ impl Board {
 
         match chess_move.target {
             Square::A1 => {
-                self.white_castle_queenside = false;
+                self.castling_valid[CastlingState::WhiteQueenSide] = false;
             }
             Square::H1 => {
-                self.white_castle_kingside = false;
+                self.castling_valid[CastlingState::WhiteKingSide] = false;
             }
             Square::A8 => {
-                self.black_castle_queenside = false;
+                self.castling_valid[CastlingState::BlackQueenSide] = false;
             }
             Square::H8 => {
-                self.black_castle_kingside = false;
+                self.castling_valid[CastlingState::BlackKingSide] = false;
             }
             _ => (),
         }
@@ -1255,8 +1312,8 @@ impl Board {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::D1);
                         self.remove_any_piece(Square::A1);
                     }
-                    self.white_castle_kingside = false;
-                    self.white_castle_queenside = false;
+                    self.castling_valid[CastlingState::WhiteKingSide] = false;
+                    self.castling_valid[CastlingState::WhiteQueenSide] = false;
                 } else {
                     if chess_move.origin == Square::E8 && chess_move.target == Square::G8 {
                         self.set_piece(Piece::Rook, PlayerColor::Black, Square::F8);
@@ -1265,22 +1322,22 @@ impl Board {
                         self.set_piece(Piece::Rook, PlayerColor::Black, Square::D8);
                         self.remove_any_piece(Square::A8);
                     }
-                    self.black_castle_kingside = false;
-                    self.black_castle_queenside = false;
+                    self.castling_valid[CastlingState::BlackKingSide] = false;
+                    self.castling_valid[CastlingState::BlackQueenSide] = false;
                 }
             } else if piece.0 == Piece::Rook {
                 match chess_move.origin {
                     Square::A1 => {
-                        self.white_castle_queenside = false;
+                        self.castling_valid[CastlingState::WhiteQueenSide] = false;
                     }
                     Square::H1 => {
-                        self.white_castle_kingside = false;
+                        self.castling_valid[CastlingState::WhiteKingSide] = false;
                     }
                     Square::A8 => {
-                        self.black_castle_queenside = false;
+                        self.castling_valid[CastlingState::BlackQueenSide] = false;
                     }
                     Square::H8 => {
-                        self.black_castle_kingside = false;
+                        self.castling_valid[CastlingState::BlackKingSide] = false;
                     }
                     _ => (),
                 }
