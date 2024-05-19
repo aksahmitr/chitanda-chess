@@ -118,26 +118,26 @@ impl PlayerColor {
     }
 }
 
-impl Index<PlayerColor> for [Bitboard; 2] {
-    type Output = Bitboard;
+impl Index<PlayerColor> for [u64; 2] {
+    type Output = u64;
     fn index(&self, index: PlayerColor) -> &Self::Output {
         &self[index as usize]
     }
 }
 
-impl IndexMut<PlayerColor> for [Bitboard; 2] {
+impl IndexMut<PlayerColor> for [u64; 2] {
     fn index_mut(&mut self, index: PlayerColor) -> &mut Self::Output {
         &mut self[index as usize]
     }
 }
 
-impl Index<Piece> for [Bitboard; 6] {
-    type Output = Bitboard;
+impl Index<Piece> for [u64; 6] {
+    type Output = u64;
     fn index(&self, index: Piece) -> &Self::Output {
         &self[index as usize]
     }
 }
-impl IndexMut<Piece> for [Bitboard; 6] {
+impl IndexMut<Piece> for [u64; 6] {
     fn index_mut(&mut self, index: Piece) -> &mut Self::Output {
         &mut self[index as usize]
     }
@@ -153,21 +153,18 @@ pub enum Piece {
     King,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Bitboard(pub u64);
-
-impl fmt::Display for Bitboard {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..8 {
-            for j in 0..8 {
-                let pos: u64 = 1u64 << (8 * i + j);
-                write!(f, "{} ", if self.0 & pos > 0 { 1 } else { 0 })?;
-            }
-            write!(f, "\n")?;
-        }
-        Ok(())
-    }
-}
+// impl fmt::Display for u64 {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         for i in 0..8 {
+//             for j in 0..8 {
+//                 let pos: u64 = 1u64 << (8 * i + j);
+//                 write!(f, "{} ", if self & pos > 0 { 1 } else { 0 })?;
+//             }
+//             write!(f, "\n")?;
+//         }
+//         Ok(())
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct Board {
@@ -183,9 +180,9 @@ pub struct Board {
     half_move_clock: u32,
     full_move_clock: u32,
 
-    color_board: [Bitboard; 2],
+    color_board: [u64; 2],
 
-    piece_board: [Bitboard; 6],
+    piece_board: [u64; 6],
 }
 
 impl fmt::Display for Board {
@@ -197,7 +194,7 @@ impl fmt::Display for Board {
                 write!(
                     f,
                     "{} ",
-                    if self.color_board[PlayerColor::White].0 & pos > 0 {
+                    if self.color_board[PlayerColor::White] & pos > 0 {
                         1
                     } else {
                         0
@@ -213,7 +210,7 @@ impl fmt::Display for Board {
                 write!(
                     f,
                     "{} ",
-                    if self.color_board[PlayerColor::Black].0 & pos > 0 {
+                    if self.color_board[PlayerColor::Black] & pos > 0 {
                         1
                     } else {
                         0
@@ -292,38 +289,38 @@ impl Board {
             half_move_clock: 0,
             full_move_clock: 0,
 
-            color_board: [Bitboard(0); 2],
+            color_board: [0; 2],
 
-            piece_board: [Bitboard(0); 6],
+            piece_board: [0; 6],
         }
     }
 
     fn set_piece(&mut self, piece: Piece, color: PlayerColor, square: Square) {
         self.remove_piece(square);
         let pos: u64 = 1u64 << square as u8;
-        self.piece_board[piece].0 |= pos;
-        self.color_board[color].0 |= pos;
+        self.piece_board[piece] |= pos;
+        self.color_board[color] |= pos;
     }
 
     fn remove_piece(&mut self, square: Square) {
         let pos: u64 = !(1u64 << square as u8);
         for board in self.piece_board.iter_mut() {
-            board.0 &= pos;
+            *board &= pos;
         }
         for board in self.color_board.iter_mut() {
-            board.0 &= pos;
+            *board &= pos;
         }
     }
 
     fn get_piece(&self, square: Square) -> Option<(Piece, PlayerColor)> {
         let pos: u64 = 1u64 << square as u8;
-        let color = if pos & self.color_board[PlayerColor::White].0 > 0 {
+        let color = if pos & self.color_board[PlayerColor::White] > 0 {
             PlayerColor::White
         } else {
             PlayerColor::Black
         };
         for piece in 0..6 {
-            if self.piece_board[piece].0 & pos > 0 {
+            if self.piece_board[piece] & pos > 0 {
                 return Some((Piece::try_from(piece).unwrap(), color));
             }
         }
@@ -395,19 +392,14 @@ impl Board {
         Ok(board)
     }
 
-    fn get_knight_moves(
-        &self,
-        moves: &mut Vec<ChessMove>,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
-    ) {
-        let mut pieces = self.piece_board[Piece::Knight].0 & player_mask.0;
+    fn get_knight_moves(&self, moves: &mut Vec<ChessMove>, player_mask: u64, enemy_mask: u64) {
+        let mut pieces = self.piece_board[Piece::Knight] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1u64 << shift;
 
             let origin = Square::try_from(shift).unwrap();
-            let mut mask = lookup::KNIGHT_MOVES[origin] & !player_mask.0;
+            let mut mask = lookup::KNIGHT_MOVES[origin] & !player_mask;
 
             while mask > 0 {
                 let shift = mask.trailing_zeros() as u8;
@@ -427,17 +419,17 @@ impl Board {
     fn get_king_moves(
         &self,
         moves: &mut Vec<ChessMove>,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
+        player_mask: u64,
+        enemy_mask: u64,
         color: PlayerColor,
     ) {
-        let mut pieces = self.piece_board[Piece::King].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::King] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1u64 << shift;
 
             let origin = Square::try_from(shift).unwrap();
-            let mut mask = lookup::KING_MOVES[origin] & !player_mask.0;
+            let mut mask = lookup::KING_MOVES[origin] & !player_mask;
 
             while mask > 0 {
                 let shift = mask.trailing_zeros() as u8;
@@ -486,16 +478,11 @@ impl Board {
         }
     }
 
-    fn get_rook_moves(
-        &self,
-        moves: &mut Vec<ChessMove>,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
-    ) {
-        let mut pieces = self.piece_board[Piece::Rook].0 & player_mask.0;
+    fn get_rook_moves(&self, moves: &mut Vec<ChessMove>, player_mask: u64, enemy_mask: u64) {
+        let mut pieces = self.piece_board[Piece::Rook] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
+            let occupied = player_mask | enemy_mask;
             pieces ^= 1u64 << shift;
 
             for id in [0, 2] {
@@ -506,7 +493,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1u64 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                    mask |= (1u64 << (63 - blockers.leading_zeros())) & enemy_mask;
                 }
 
                 while mask > 0 {
@@ -531,7 +518,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1u64 << blockers.trailing_zeros()) & enemy_mask.0;
+                    mask |= (1u64 << blockers.trailing_zeros()) & enemy_mask;
                 }
 
                 while mask > 0 {
@@ -550,16 +537,11 @@ impl Board {
         }
     }
 
-    fn get_bishop_moves(
-        &self,
-        moves: &mut Vec<ChessMove>,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
-    ) {
-        let mut pieces = self.piece_board[Piece::Bishop].0 & player_mask.0;
+    fn get_bishop_moves(&self, moves: &mut Vec<ChessMove>, player_mask: u64, enemy_mask: u64) {
+        let mut pieces = self.piece_board[Piece::Bishop] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
+            let occupied = player_mask | enemy_mask;
             pieces ^= 1u64 << shift;
 
             for id in [1, 3] {
@@ -570,7 +552,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1u64 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                    mask |= (1u64 << (63 - blockers.leading_zeros())) & enemy_mask;
                 }
 
                 while mask > 0 {
@@ -595,7 +577,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1u64 << blockers.trailing_zeros()) & enemy_mask.0;
+                    mask |= (1u64 << blockers.trailing_zeros()) & enemy_mask;
                 }
 
                 while mask > 0 {
@@ -614,16 +596,11 @@ impl Board {
         }
     }
 
-    fn get_queen_moves(
-        &self,
-        moves: &mut Vec<ChessMove>,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
-    ) {
-        let mut pieces = self.piece_board[Piece::Queen].0 & player_mask.0;
+    fn get_queen_moves(&self, moves: &mut Vec<ChessMove>, player_mask: u64, enemy_mask: u64) {
+        let mut pieces = self.piece_board[Piece::Queen] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
-            let occupied = player_mask.0 | enemy_mask.0;
+            let occupied = player_mask | enemy_mask;
             pieces ^= 1u64 << shift;
 
             for id in 0..4 {
@@ -634,7 +611,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_low_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1u64 << (63 - blockers.leading_zeros())) & enemy_mask.0;
+                    mask |= (1u64 << (63 - blockers.leading_zeros())) & enemy_mask;
                 }
 
                 while mask > 0 {
@@ -659,7 +636,7 @@ impl Board {
                 let mut mask = lookup::RAY_MOVES[id][origin] & get_high_mask(blockers);
 
                 if blockers > 0 {
-                    mask |= (1u64 << blockers.trailing_zeros()) & enemy_mask.0;
+                    mask |= (1u64 << blockers.trailing_zeros()) & enemy_mask;
                 }
 
                 while mask > 0 {
@@ -681,21 +658,21 @@ impl Board {
     fn get_pawn_moves(
         &self,
         moves: &mut Vec<ChessMove>,
-        player_mask: Bitboard,
-        enemy_mask: Bitboard,
+        player_mask: u64,
+        enemy_mask: u64,
         color: PlayerColor,
     ) {
-        let pawns = player_mask.0 & self.piece_board[Piece::Pawn].0;
+        let pawns = player_mask & self.piece_board[Piece::Pawn];
         let en_passant_mask = self
             .en_passant_square
             .map_or(0, |square| ((1 as u64) << square as u8));
-        let enemy_mask = enemy_mask.0 | en_passant_mask;
+        let enemy_mask = enemy_mask | en_passant_mask;
         if color == PlayerColor::White {
             //single push
             let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -739,7 +716,7 @@ impl Board {
             let mut pieces = pawns & 0xFF000000000000;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -847,7 +824,7 @@ impl Board {
             let mut pieces = pawns;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -891,7 +868,7 @@ impl Board {
             let mut pieces = pawns & 0xFF00;
             while pieces > 0 {
                 let shift = pieces.trailing_zeros() as u8;
-                let occupied = player_mask.0 | enemy_mask;
+                let occupied = player_mask | enemy_mask;
                 let origin = Square::try_from(shift).unwrap();
 
                 //will break if on final rank
@@ -1022,16 +999,14 @@ impl Board {
     }
 
     pub fn is_attacked(&self, square: Square, color: PlayerColor) -> bool {
-        let player_mask: Bitboard = self.color_board[color];
-        let enemy_mask: Bitboard = self.color_board[color.other()];
-        let occupied = player_mask.0 | enemy_mask.0;
-        if lookup::KING_MOVES[square as usize] & enemy_mask.0 & self.piece_board[Piece::King].0 > 0
-        {
+        let player_mask: u64 = self.color_board[color];
+        let enemy_mask: u64 = self.color_board[color.other()];
+        let occupied = player_mask | enemy_mask;
+        if lookup::KING_MOVES[square as usize] & enemy_mask & self.piece_board[Piece::King] > 0 {
             return true;
         };
 
-        if lookup::KNIGHT_MOVES[square as usize] & enemy_mask.0 & self.piece_board[Piece::Knight].0
-            > 0
+        if lookup::KNIGHT_MOVES[square as usize] & enemy_mask & self.piece_board[Piece::Knight] > 0
         {
             return true;
         };
@@ -1044,8 +1019,8 @@ impl Board {
             }
 
             if (1u64 << (63 - blockers.leading_zeros()))
-                & enemy_mask.0
-                & (self.piece_board[Piece::Rook].0 | self.piece_board[Piece::Queen].0)
+                & enemy_mask
+                & (self.piece_board[Piece::Rook] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1060,8 +1035,8 @@ impl Board {
             }
 
             if (1u64 << blockers.trailing_zeros())
-                & enemy_mask.0
-                & (self.piece_board[Piece::Rook].0 | self.piece_board[Piece::Queen].0)
+                & enemy_mask
+                & (self.piece_board[Piece::Rook] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1076,8 +1051,8 @@ impl Board {
             }
 
             if (1u64 << (63 - blockers.leading_zeros()))
-                & enemy_mask.0
-                & (self.piece_board[Piece::Bishop].0 | self.piece_board[Piece::Queen].0)
+                & enemy_mask
+                & (self.piece_board[Piece::Bishop] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1092,8 +1067,8 @@ impl Board {
             }
 
             if (1u64 << blockers.trailing_zeros())
-                & enemy_mask.0
-                & (self.piece_board[Piece::Bishop].0 | self.piece_board[Piece::Queen].0)
+                & enemy_mask
+                & (self.piece_board[Piece::Bishop] | self.piece_board[Piece::Queen])
                 > 0
             {
                 return true;
@@ -1120,7 +1095,7 @@ impl Board {
             }
         }
 
-        if mask & enemy_mask.0 & self.piece_board[Piece::Pawn].0 > 0 {
+        if mask & enemy_mask & self.piece_board[Piece::Pawn] > 0 {
             return true;
         }
         false
@@ -1130,7 +1105,7 @@ impl Board {
         let player_mask = self.color_board[color];
         let enemy_mask = self.color_board[color.other()];
 
-        let mut pieces = self.piece_board[Piece::King].0 & player_mask.0;
+        let mut pieces = self.piece_board[Piece::King] & player_mask;
         while pieces > 0 {
             let shift = pieces.trailing_zeros() as u8;
             pieces ^= 1u64 << shift;
@@ -1149,8 +1124,7 @@ impl Board {
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::F1, color)
                 || self.is_attacked(Square::G1, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0x6000000000000000
                     == 0)
         } else {
@@ -1160,8 +1134,7 @@ impl Board {
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::F8, color)
                 || self.is_attacked(Square::G8, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0x60
                     == 0)
         }
@@ -1175,8 +1148,7 @@ impl Board {
             !(self.is_attacked(Square::E1, color)
                 || self.is_attacked(Square::D1, color)
                 || self.is_attacked(Square::C1, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0xE00000000000000
                     == 0)
         } else {
@@ -1186,8 +1158,7 @@ impl Board {
             !(self.is_attacked(Square::E8, color)
                 || self.is_attacked(Square::D8, color)
                 || self.is_attacked(Square::C8, color))
-                && ((self.color_board[PlayerColor::White].0
-                    | self.color_board[PlayerColor::Black].0)
+                && ((self.color_board[PlayerColor::White] | self.color_board[PlayerColor::Black])
                     & 0xE
                     == 0)
         }
@@ -1307,7 +1278,7 @@ impl Board {
     //     //does not consider en passant and castling
     //     let mut new_board = self.clone();
     //     let piece = self.get_piece(chess_move.origin).unwrap();
-    //     new_board.set_piece(piece.0, piece.1, chess_move.target);
+    //     new_board.set_piece(piece, piece.1, chess_move.target);
     //     new_board.remove_piece(chess_move.origin);
     //     !new_board.is_in_check(piece.1)
     // }
