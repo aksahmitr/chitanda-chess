@@ -6,8 +6,6 @@ use board::PlayerColor;
 mod board;
 mod lookup;
 
-//run perft on initial position
-//update board.rs to use the passed castling state instead of searching for it
 fn count(ply: u8, board: Board) -> u64 {
     if ply == 5 {
         return 1;

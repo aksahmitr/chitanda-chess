@@ -1360,7 +1360,29 @@ impl Board {
         } else {
             self.remove_piece(del.chess_move.target, del.moved_piece);
         }
-        //account for castling, promotion, en passant
+
+        if let Some(state) = del.chess_move.castle_type {
+            match state {
+                CastlingState::WhiteKingSide => {
+                    self.set_piece(Piece::Rook, PlayerColor::White, Square::H1);
+                    self.remove_piece(Square::F1, Piece::Rook);
+                }
+                CastlingState::WhiteQueenSide => {
+                    self.set_piece(Piece::Rook, PlayerColor::White, Square::A1);
+                    self.remove_piece(Square::D1, Piece::Rook);
+                }
+                CastlingState::BlackKingSide => {
+                    self.set_piece(Piece::Rook, PlayerColor::Black, Square::H8);
+                    self.remove_piece(Square::F8, Piece::Rook);
+                }
+                CastlingState::BlackQueenSide => {
+                    self.set_piece(Piece::Rook, PlayerColor::Black, Square::A8);
+                    self.remove_piece(Square::D8, Piece::Rook);
+                }
+            }
+        }
+
+        //account for promotion, en passant
     }
 
     // pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
