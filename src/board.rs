@@ -4,7 +4,7 @@ use std::ops::{Index, IndexMut};
 use crate::lookup;
 
 #[derive(Debug, PartialEq, Clone)]
-enum CastlingState {
+pub enum CastlingState {
     WhiteKingSide,
     WhiteQueenSide,
     BlackKingSide,
@@ -477,7 +477,7 @@ impl Board {
         }
 
         if self.active_color == PlayerColor::White {
-            if self.castling_valid[CastlingState::WhiteKingSide] {
+            if self.can_castle(CastlingState::WhiteKingSide) {
                 moves.push(ChessMove {
                     origin: Square::E1,
                     target: Square::G1,
@@ -485,7 +485,7 @@ impl Board {
                     castle_type: Some(CastlingState::WhiteKingSide),
                 });
             }
-            if self.castling_valid[CastlingState::WhiteQueenSide] {
+            if self.can_castle(CastlingState::WhiteQueenSide) {
                 moves.push(ChessMove {
                     origin: Square::E1,
                     target: Square::C1,
@@ -494,7 +494,7 @@ impl Board {
                 });
             }
         } else {
-            if self.castling_valid[CastlingState::BlackKingSide] {
+            if self.can_castle(CastlingState::BlackKingSide) {
                 moves.push(ChessMove {
                     origin: Square::E8,
                     target: Square::G8,
@@ -502,7 +502,7 @@ impl Board {
                     castle_type: Some(CastlingState::BlackKingSide),
                 });
             }
-            if self.castling_valid[CastlingState::BlackQueenSide] {
+            if self.can_castle(CastlingState::BlackQueenSide) {
                 moves.push(ChessMove {
                     origin: Square::E8,
                     target: Square::C8,
