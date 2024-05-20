@@ -18,10 +18,10 @@ fn count(ply: u8, board: Board) -> u64 {
         if !next.is_in_check(next.active_color.other().clone()) {
             let cur = count(ply + 1, next);
             res += cur;
-            if ply == 0 {
-                print!("{:?}{:?}", pseudo_move.origin, pseudo_move.target);
-                println!(": {}", cur);
-            }
+            // if ply == 0 {
+            //     print!("{:?}{:?}", pseudo_move.origin, pseudo_move.target);
+            //     println!(": {}", cur);
+            // }
         }
         //board.undo_move();
     }

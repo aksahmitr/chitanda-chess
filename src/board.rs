@@ -212,8 +212,7 @@ pub struct Board {
     color_board: [u64; 2],
 
     piece_board: [u64; 6],
-
-    delta: Vec<DeltaBoard>,
+    //delta: Vec<DeltaBoard>,
 }
 
 impl fmt::Display for Board {
@@ -320,8 +319,7 @@ impl Board {
             color_board: [0; 2],
 
             piece_board: [0; 6],
-
-            delta: Vec::new(),
+            //delta: Vec::new(),
         }
     }
 
@@ -1250,15 +1248,15 @@ impl Board {
     pub fn make_move(&mut self, chess_move: ChessMove) {
         let piece = self.get_piece(chess_move.origin).unwrap();
 
-        let delta = DeltaBoard {
-            castling_valid: self.castling_valid,
-            en_passant_square: self.en_passant_square,
-            captured_piece: self.get_piece(chess_move.target).map(|x| x.0),
-            moved_piece: piece.0,
-            chess_move: chess_move.clone(),
-        };
+        // let delta = DeltaBoard {
+        //     castling_valid: self.castling_valid,
+        //     en_passant_square: self.en_passant_square,
+        //     captured_piece: self.get_piece(chess_move.target).map(|x| x.0),
+        //     moved_piece: piece.0,
+        //     chess_move: chess_move.clone(),
+        // };
 
-        self.delta.push(delta);
+        // self.delta.push(delta);
 
         self.set_piece(piece.0, piece.1, chess_move.target);
         self.remove_any_piece(chess_move.origin);
@@ -1354,65 +1352,56 @@ impl Board {
         self.active_color = self.active_color.other();
     }
 
-    pub fn undo_move(&mut self) {
-        let del = self.delta.pop().unwrap();
-        self.active_color = self.active_color.other();
-        self.castling_valid = del.castling_valid;
-        self.en_passant_square = del.en_passant_square;
-        self.set_piece(del.moved_piece, self.active_color, del.chess_move.origin);
-        if let Some(captured_piece) = del.captured_piece {
-            self.set_piece(
-                captured_piece,
-                self.active_color.other(),
-                del.chess_move.target,
-            );
-        } else {
-            self.remove_any_piece(del.chess_move.target);
-        }
+    // pub fn undo_move(&mut self) {
+    //     let del = self.delta.pop().unwrap();
+    //     self.active_color = self.active_color.other();
+    //     self.castling_valid = del.castling_valid;
+    //     self.en_passant_square = del.en_passant_square;
+    //     self.set_piece(del.moved_piece, self.active_color, del.chess_move.origin);
+    //     if let Some(captured_piece) = del.captured_piece {
+    //         self.set_piece(
+    //             captured_piece,
+    //             self.active_color.other(),
+    //             del.chess_move.target,
+    //         );
+    //     } else {
+    //         self.remove_any_piece(del.chess_move.target);
+    //     }
 
-        if let Some(state) = del.chess_move.castle_type {
-            match state {
-                CastlingState::WhiteKingSide => {
-                    self.set_piece(Piece::Rook, PlayerColor::White, Square::H1);
-                    self.remove_piece(Square::F1, Piece::Rook);
-                }
-                CastlingState::WhiteQueenSide => {
-                    self.set_piece(Piece::Rook, PlayerColor::White, Square::A1);
-                    self.remove_piece(Square::D1, Piece::Rook);
-                }
-                CastlingState::BlackKingSide => {
-                    self.set_piece(Piece::Rook, PlayerColor::Black, Square::H8);
-                    self.remove_piece(Square::F8, Piece::Rook);
-                }
-                CastlingState::BlackQueenSide => {
-                    self.set_piece(Piece::Rook, PlayerColor::Black, Square::A8);
-                    self.remove_piece(Square::D8, Piece::Rook);
-                }
-            }
-            return;
-        }
+    //     if let Some(state) = del.chess_move.castle_type {
+    //         match state {
+    //             CastlingState::WhiteKingSide => {
+    //                 self.set_piece(Piece::Rook, PlayerColor::White, Square::H1);
+    //                 self.remove_piece(Square::F1, Piece::Rook);
+    //             }
+    //             CastlingState::WhiteQueenSide => {
+    //                 self.set_piece(Piece::Rook, PlayerColor::White, Square::A1);
+    //                 self.remove_piece(Square::D1, Piece::Rook);
+    //             }
+    //             CastlingState::BlackKingSide => {
+    //                 self.set_piece(Piece::Rook, PlayerColor::Black, Square::H8);
+    //                 self.remove_piece(Square::F8, Piece::Rook);
+    //             }
+    //             CastlingState::BlackQueenSide => {
+    //                 self.set_piece(Piece::Rook, PlayerColor::Black, Square::A8);
+    //                 self.remove_piece(Square::D8, Piece::Rook);
+    //             }
+    //         }
+    //         return;
+    //     }
 
-        if let Some(en_passant_square) = self.en_passant_square {
-            if del.moved_piece == Piece::Pawn && del.chess_move.target == en_passant_square {
-                self.set_piece(
-                    Piece::Pawn,
-                    self.active_color.other(),
-                    if self.active_color == PlayerColor::White {
-                        (en_passant_square as u8 + 8).try_into().unwrap()
-                    } else {
-                        (en_passant_square as u8 - 8).try_into().unwrap()
-                    },
-                );
-            }
-        }
-    }
-
-    // pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
-    //     //does not consider en passant and castling
-    //     let mut new_board = self.clone();
-    //     let piece = self.get_piece(chess_move.origin).unwrap();
-    //     new_board.set_piece(piece, piece.1, chess_move.target);
-    //     new_board.remove_any_piece(chess_move.origin);
-    //     !new_board.is_in_check(piece.1)
+    //     if let Some(en_passant_square) = self.en_passant_square {
+    //         if del.moved_piece == Piece::Pawn && del.chess_move.target == en_passant_square {
+    //             self.set_piece(
+    //                 Piece::Pawn,
+    //                 self.active_color.other(),
+    //                 if self.active_color == PlayerColor::White {
+    //                     (en_passant_square as u8 + 8).try_into().unwrap()
+    //                 } else {
+    //                     (en_passant_square as u8 - 8).try_into().unwrap()
+    //                 },
+    //             );
+    //         }
+    //     }
     // }
 }
