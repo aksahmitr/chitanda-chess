@@ -136,7 +136,7 @@ impl TryFrom<usize> for Piece {
 }
 
 impl PlayerColor {
-    fn other(&self) -> PlayerColor {
+    pub fn other(&self) -> PlayerColor {
         PlayerColor::try_from(1 ^ (*self as u8)).unwrap()
     }
 }
@@ -189,7 +189,7 @@ pub enum Piece {
 //     }
 // }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct DeltaBoard {
     castling_valid: [bool; 4],
     en_passant_square: Option<Square>,
@@ -198,7 +198,7 @@ struct DeltaBoard {
     chess_move: ChessMove,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Board {
     pub active_color: PlayerColor,
 
@@ -1357,6 +1357,8 @@ impl Board {
     pub fn undo_move(&mut self) {
         let del = self.delta.pop().unwrap();
         self.active_color = self.active_color.other();
+        self.castling_valid = del.castling_valid;
+        self.en_passant_square = del.en_passant_square;
         self.set_piece(del.moved_piece, self.active_color, del.chess_move.origin);
         if let Some(captured_piece) = del.captured_piece {
             self.set_piece(
