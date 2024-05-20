@@ -1303,28 +1303,29 @@ impl Board {
             }
         } else {
             self.en_passant_square = None;
-            if piece.0 == Piece::King {
-                if piece.1 == PlayerColor::White {
-                    if chess_move.origin == Square::E1 && chess_move.target == Square::G1 {
+            if let Some(state) = chess_move.castle_type {
+                match state {
+                    CastlingState::WhiteKingSide => {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::F1);
-                        self.remove_any_piece(Square::H1);
-                    } else if chess_move.origin == Square::E1 && chess_move.target == Square::C1 {
+                        self.remove_piece(Square::H1, Piece::Rook);
+                    }
+                    CastlingState::WhiteQueenSide => {
                         self.set_piece(Piece::Rook, PlayerColor::White, Square::D1);
-                        self.remove_any_piece(Square::A1);
+                        self.remove_piece(Square::A1, Piece::Rook);
                     }
-                    self.castling_valid[CastlingState::WhiteKingSide] = false;
-                    self.castling_valid[CastlingState::WhiteQueenSide] = false;
-                } else {
-                    if chess_move.origin == Square::E8 && chess_move.target == Square::G8 {
+                    CastlingState::BlackKingSide => {
                         self.set_piece(Piece::Rook, PlayerColor::Black, Square::F8);
-                        self.remove_any_piece(Square::H8);
-                    } else if chess_move.origin == Square::E8 && chess_move.target == Square::C8 {
-                        self.set_piece(Piece::Rook, PlayerColor::Black, Square::D8);
-                        self.remove_any_piece(Square::A8);
+                        self.remove_piece(Square::H8, Piece::Rook);
                     }
-                    self.castling_valid[CastlingState::BlackKingSide] = false;
-                    self.castling_valid[CastlingState::BlackQueenSide] = false;
+                    CastlingState::BlackQueenSide => {
+                        self.set_piece(Piece::Rook, PlayerColor::Black, Square::D8);
+                        self.remove_piece(Square::A8, Piece::Rook);
+                    }
                 }
+                self.castling_valid[CastlingState::WhiteKingSide] = false;
+                self.castling_valid[CastlingState::WhiteQueenSide] = false;
+                self.castling_valid[CastlingState::BlackKingSide] = false;
+                self.castling_valid[CastlingState::BlackQueenSide] = false;
             } else if piece.0 == Piece::Rook {
                 match chess_move.origin {
                     Square::A1 => {

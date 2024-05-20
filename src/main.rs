@@ -31,9 +31,9 @@ fn count(ply: u8, board: Board) -> u64 {
 
 fn main() {
     let cur = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ").unwrap();
-    // let ans = count(0, cur);
+    let ans = count(0, cur);
 
-    // println!("{ans}");
+    println!("{ans}");
 
     use std::time::Instant;
     let mut avg: Duration = Duration::from_micros(0);
