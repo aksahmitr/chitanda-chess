@@ -1249,6 +1249,17 @@ impl Board {
 
     pub fn make_move(&mut self, chess_move: ChessMove) {
         let piece = self.get_piece(chess_move.origin).unwrap();
+
+        let delta = DeltaBoard {
+            castling_valid: self.castling_valid,
+            en_passant_square: self.en_passant_square,
+            captured_piece: self.get_piece(chess_move.target).map(|x| x.0),
+            moved_piece: piece.0,
+            chess_move: chess_move.clone(),
+        };
+
+        self.delta.push(delta);
+
         self.set_piece(piece.0, piece.1, chess_move.target);
         self.remove_any_piece(chess_move.origin);
 
@@ -1269,12 +1280,8 @@ impl Board {
         }
 
         if piece.0 == Piece::Pawn {
-            if ((chess_move.target as u8) < 8) || ((chess_move.target as u8) > 55) {
-                self.set_piece(
-                    chess_move.promotion_piece.unwrap(),
-                    piece.1,
-                    chess_move.target,
-                );
+            if let Some(promotion_piece) = chess_move.promotion_piece {
+                self.set_piece(promotion_piece, piece.1, chess_move.target);
             }
             if let Some(en_passant_square) = self.en_passant_square {
                 if en_passant_square == chess_move.target {
