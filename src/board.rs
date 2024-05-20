@@ -1358,7 +1358,7 @@ impl Board {
                 del.chess_move.target,
             );
         } else {
-            self.remove_piece(del.chess_move.target, del.moved_piece);
+            self.remove_any_piece(del.chess_move.target);
         }
 
         if let Some(state) = del.chess_move.castle_type {
@@ -1380,9 +1380,22 @@ impl Board {
                     self.remove_piece(Square::D8, Piece::Rook);
                 }
             }
+            return;
         }
 
-        //account for promotion, en passant
+        if let Some(en_passant_square) = self.en_passant_square {
+            if del.moved_piece == Piece::Pawn && del.chess_move.target == en_passant_square {
+                self.set_piece(
+                    Piece::Pawn,
+                    self.active_color.other(),
+                    if self.active_color == PlayerColor::White {
+                        (en_passant_square as u8 + 8).try_into().unwrap()
+                    } else {
+                        (en_passant_square as u8 - 8).try_into().unwrap()
+                    },
+                );
+            }
+        }
     }
 
     // pub fn is_legal_move(&self, chess_move: ChessMove) -> bool {
