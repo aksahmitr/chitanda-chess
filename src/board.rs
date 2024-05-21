@@ -209,9 +209,9 @@ pub struct Board {
     half_move_clock: u32,
     full_move_clock: u32,
 
-    color_board: [u64; 2],
+    pub color_board: [u64; 2],
 
-    piece_board: [u64; 6],
+    pub piece_board: [u64; 6],
     //delta: Vec<DeltaBoard>,
 }
 
