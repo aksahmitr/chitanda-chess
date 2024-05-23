@@ -176,18 +176,15 @@ pub enum Piece {
     King,
 }
 
-// impl fmt::Display for u64 {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         for i in 0..8 {
-//             for j in 0..8 {
-//                 let pos: u64 = 1u64 << (8 * i + j);
-//                 write!(f, "{} ", if self & pos > 0 { 1 } else { 0 })?;
-//             }
-//             write!(f, "\n")?;
-//         }
-//         Ok(())
-//     }
-// }
+fn display_board(x: u64) {
+    for i in 0..8 {
+        for j in 0..8 {
+            let pos: u64 = 1u64 << (8 * i + j);
+            print!("{} ", if x & pos > 0 { 1 } else { 0 });
+        }
+        print!("\n");
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 struct DeltaBoard {
@@ -1346,6 +1343,17 @@ impl Board {
                         self.castling_valid[CastlingState::BlackKingSide] = false;
                     }
                     _ => (),
+                }
+            } else if piece.0 == Piece::King {
+                match piece.1 {
+                    PlayerColor::White => {
+                        self.castling_valid[CastlingState::WhiteQueenSide] = false;
+                        self.castling_valid[CastlingState::WhiteKingSide] = false;
+                    }
+                    PlayerColor::Black => {
+                        self.castling_valid[CastlingState::BlackQueenSide] = false;
+                        self.castling_valid[CastlingState::BlackKingSide] = false;
+                    }
                 }
             }
         }
