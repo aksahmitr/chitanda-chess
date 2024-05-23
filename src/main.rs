@@ -7,10 +7,13 @@ mod evaluation;
 mod lookup;
 
 fn main() {
-    let cur = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 4").unwrap();
+    let cur =
+        Board::from_fen("r1bqkbnr/p1ppp1pp/Bp3p2/2P3B1/3PP3/2N2N2/PP3PPP/R2QK2R b KQkq - 0 8")
+            .unwrap();
 
-    println!("{}", cur.eval());
-    println!("{}", cur.perft(6, 0));
+    //println!("{}", cur.eval());
+    //println!("{}", cur.perft(6, 0));
+    println!("{:?}", cur.eval_search(5, 0));
     // println!("{:#?}", cur.get_moves());
     // let ans = count(0, cur);
 

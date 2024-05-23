@@ -1424,4 +1424,31 @@ impl Board {
         }
         res
     }
+
+    pub fn eval_search(&self, depth: u8, current: u8) -> (i32, Option<ChessMove>) {
+        if current == depth {
+            return (self.eval(), None);
+        }
+        let mut res: i32 = if self.active_color == PlayerColor::White {
+            i32::min_value()
+        } else {
+            i32::max_value()
+        };
+        let moves = self.get_moves();
+        let mut best_move = None;
+        for pseudo_move in moves {
+            let mut next = self.clone();
+            next.make_move(pseudo_move.clone());
+            if !next.is_in_check(next.active_color.other().clone()) {
+                let next_search = next.eval_search(depth, current + 1);
+                if (self.active_color == PlayerColor::White && res < next_search.0)
+                    || (self.active_color == PlayerColor::Black && res > next_search.0)
+                {
+                    res = next_search.0;
+                    best_move = Some(pseudo_move);
+                }
+            }
+        }
+        (res, best_move)
+    }
 }
