@@ -1404,4 +1404,24 @@ impl Board {
     //         }
     //     }
     // }
+
+    pub fn perft(&self, depth: u8, current: u8) -> u64 {
+        if current == depth {
+            return 1;
+        }
+        let mut res: u64 = 0;
+        let moves = self.get_moves();
+        for pseudo_move in moves {
+            let mut next = self.clone();
+            next.make_move(pseudo_move.clone());
+            if !next.is_in_check(next.active_color.other().clone()) {
+                let cur = next.perft(depth, current + 1);
+                res += cur;
+                if current == 0 {
+                    println!("{:?}{:?} : {}", pseudo_move.origin, pseudo_move.target, cur);
+                }
+            }
+        }
+        res
+    }
 }
