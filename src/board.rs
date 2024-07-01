@@ -1,4 +1,6 @@
 use core::fmt;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use std::ops::{Index, IndexMut};
 
 use crate::lookup;
@@ -1232,12 +1234,12 @@ impl Board {
 
         let mut moves = Vec::new();
 
-        self.get_knight_moves(&mut moves, player_mask, enemy_mask);
-        self.get_king_moves(&mut moves, player_mask, enemy_mask);
-        self.get_rook_moves(&mut moves, player_mask, enemy_mask);
-        self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
         self.get_queen_moves(&mut moves, player_mask, enemy_mask);
+        self.get_rook_moves(&mut moves, player_mask, enemy_mask);
+        self.get_knight_moves(&mut moves, player_mask, enemy_mask);
+        self.get_bishop_moves(&mut moves, player_mask, enemy_mask);
         self.get_pawn_moves(&mut moves, player_mask, enemy_mask);
+        self.get_king_moves(&mut moves, player_mask, enemy_mask);
 
         moves
     }
@@ -1433,8 +1435,9 @@ impl Board {
         res
     }
 
-    pub fn eval_search(&self, depth: u8, current: u8) -> (i32, Option<ChessMove>) {
-        if current == depth {
+    //search all nodes upto depth
+    pub fn eval_search(&self, depth: u8) -> (i32, Option<ChessMove>) {
+        if depth == 0 {
             return (self.eval(), None);
         }
         let mut res: i32 = if self.active_color == PlayerColor::White {
@@ -1448,7 +1451,7 @@ impl Board {
             let mut next = self.clone();
             next.make_move(pseudo_move.clone());
             if !next.is_in_check(next.active_color.other().clone()) {
-                let next_search = next.eval_search(depth, current + 1);
+                let next_search = next.eval_search(depth - 1);
                 if (self.active_color == PlayerColor::White && res < next_search.0)
                     || (self.active_color == PlayerColor::Black && res > next_search.0)
                 {
@@ -1458,5 +1461,56 @@ impl Board {
             }
         }
         (res, best_move)
+    }
+
+    //alpha beta search
+    pub fn alpha_beta(&self, depth: u8, mut alpha: i32, mut beta: i32) -> (i32, Option<ChessMove>) {
+        if depth == 0 {
+            return (self.eval(), None);
+        }
+
+        let mut moves = self.get_moves();
+
+        //moves.shuffle(&mut thread_rng());
+
+        if self.active_color == PlayerColor::White {
+            let mut max_eval = i32::min_value();
+            let mut best_move = None;
+            for pseudo_move in moves {
+                let mut next = self.clone();
+                next.make_move(pseudo_move.clone());
+                if !next.is_in_check(next.active_color.other().clone()) {
+                    let next_search = next.alpha_beta(depth - 1, alpha, beta);
+                    if next_search.0 > max_eval {
+                        max_eval = std::cmp::max(max_eval, next_search.0);
+                        best_move = Some(pseudo_move);
+                    }
+                    alpha = std::cmp::max(alpha, next_search.0);
+                    if beta <= alpha {
+                        break;
+                    }
+                }
+            }
+            (max_eval, best_move)
+        } else {
+            let mut min_eval = i32::max_value();
+            let mut best_move = None;
+            for pseudo_move in moves {
+                let mut next = self.clone();
+                next.make_move(pseudo_move.clone());
+                if !next.is_in_check(next.active_color.other().clone()) {
+                    let next_search = next.alpha_beta(depth - 1, alpha, beta);
+                    if next_search.0 < min_eval {
+                        min_eval = std::cmp::min(min_eval, next_search.0);
+                        best_move = Some(pseudo_move);
+                    }
+                    beta = std::cmp::min(beta, next_search.0);
+                    if beta <= alpha {
+                        break;
+                    }
+                }
+            }
+            (min_eval, best_move)
+        }
     }
 }
